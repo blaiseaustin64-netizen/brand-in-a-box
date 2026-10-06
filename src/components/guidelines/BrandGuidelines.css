@@ -1,0 +1,162 @@
+.guidelines { max-width: 760px; margin: 0 auto; padding-bottom: 56px; }
+.guidelines__header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.guidelines__header h1 {
+  font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin-bottom: 4px;
+}
+.guidelines__header p { font-size: 13px; color: var(--text-muted); max-width: 420px; }
+.guidelines__exports { display: flex; gap: 8px; }
+.guidelines__exports button {
+  padding: 8px 14px; border-radius: var(--radius); font-size: 12px; font-weight: 550;
+  color: var(--text-muted); border: 1px solid var(--border); background: var(--surface);
+}
+.guidelines__exports button:hover { color: var(--text); border-color: var(--border-strong); }
+.guidelines__banner {
+  padding: 12px 14px; margin-bottom: 16px; border-radius: var(--radius);
+  background: var(--premium-dim); border: 1px solid rgba(245,197,66,0.25);
+  color: var(--premium); font-size: 13px;
+}
+.guidelines__cover {
+  padding: 48px 32px; border-radius: var(--radius-xl); border: 1px solid var(--border);
+  margin-bottom: 28px; text-align: center;
+}
+.guidelines__eyebrow {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+  opacity: 0.6; margin-bottom: 12px;
+}
+.guidelines__cover h2 {
+  font-size: 2.25rem; font-weight: 650; letter-spacing: -0.03em; margin-bottom: 8px;
+}
+.guidelines__tagline { font-size: 1.1rem; opacity: 0.75; margin-bottom: 20px; }
+.guidelines__cover-swatches { display: flex; justify-content: center; gap: 8px; }
+.guidelines__cover-swatches span {
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+}
+.guidelines__section { margin-bottom: 32px; }
+.guidelines__section h3 {
+  font-size: 14px; font-weight: 650; letter-spacing: -0.01em;
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.guidelines__section h4 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim); margin-bottom: 6px;
+}
+.guidelines__prose p { font-size: 14px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.6; }
+.guidelines__prose strong { color: var(--text); font-weight: 600; }
+.guidelines__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.guidelines__chips span {
+  padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(98,230,255,0.2);
+}
+.guidelines__chips--muted span {
+  background: var(--surface-2); color: var(--text-muted); border-color: var(--border);
+}
+.guidelines__list { list-style: none; margin-bottom: 12px; }
+.guidelines__list li {
+  position: relative; padding-left: 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 4px;
+}
+.guidelines__list li::before {
+  content: ''; position: absolute; left: 0; top: 7px; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--accent); opacity: 0.7;
+}
+.guidelines__muted { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.guidelines__grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;
+}
+.guidelines__grid-2 > div {
+  padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.guidelines__grid-2 p { font-size: 13px; color: var(--text-muted); }
+.guidelines__quote {
+  margin: 12px 0; padding: 14px 16px; border-left: 2px solid var(--accent);
+  background: var(--surface); border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 14px; color: var(--text-muted); font-style: italic;
+}
+.guidelines__logo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;
+}
+.guidelines__logo-card {
+  padding: 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); text-align: center;
+}
+.guidelines__logo-card--active { border-color: rgba(52,211,153,0.35); }
+.guidelines__logo-preview {
+  height: 72px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
+}
+.guidelines__logo-preview svg { max-height: 64px; max-width: 100%; }
+.guidelines__logo-card > span { font-size: 11px; color: var(--text-dim); }
+.guidelines__color-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px;
+}
+.guidelines__color {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+}
+.guidelines__color-swatch { height: 56px; }
+.guidelines__color strong, .guidelines__color code, .guidelines__color span {
+  display: block; padding: 0 10px; font-size: 11px;
+}
+.guidelines__color strong { padding-top: 8px; font-size: 12px; }
+.guidelines__color code { color: var(--accent); font-family: var(--font-mono); margin: 2px 0; }
+.guidelines__contrast { color: var(--success); font-weight: 600; padding-bottom: 2px !important; }
+.guidelines__color .guidelines__muted { padding-bottom: 10px; }
+.guidelines__type-sample {
+  padding: 24px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); margin-bottom: 12px;
+}
+.guidelines__type-display {
+  font-size: 1.75rem; font-weight: 650; letter-spacing: -0.02em; margin-bottom: 8px;
+}
+.guidelines__type-meta {
+  display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-dim); margin-bottom: 12px;
+}
+.guidelines__scale { list-style: none; }
+.guidelines__scale li {
+  display: flex; justify-content: space-between; font-size: 12px; padding: 8px 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 4px;
+  color: var(--text-muted);
+}
+.guidelines__scale li span:first-child { color: var(--text); font-weight: 550; }
+.guidelines__tag {
+  display: inline-block; font-size: 11px; font-weight: 550; padding: 3px 8px; border-radius: 4px;
+  background: var(--secondary-dim); color: var(--secondary); margin-bottom: 12px;
+}
+.guidelines__vd-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.guidelines__vd-grid > div {
+  padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.guidelines__vd-grid p { font-size: 13px; color: var(--text-muted); line-height: 1.45; }
+.guidelines__asset-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px;
+}
+.guidelines__asset {
+  padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.guidelines__asset div { height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.guidelines__asset svg { max-height: 72px; max-width: 100%; }
+.guidelines__asset span { font-size: 11px; color: var(--text); display: block; }
+.guidelines__asset em { display: block; font-style: normal; color: var(--text-dim); font-size: 10px; text-transform: capitalize; }
+.guidelines__system-demo { padding: 20px; border: 1px solid var(--border); margin-bottom: 12px; }
+.guidelines__system-card { padding: 16px; }
+.guidelines__system-card h4 { margin-bottom: 6px; }
+.guidelines__system-card p { font-size: 13px; margin-bottom: 14px; }
+.guidelines__system-actions { display: flex; gap: 8px; }
+.guidelines__system-actions button { padding: 8px 14px; font-size: 12px; font-weight: 600; border: none; }
+.guidelines__token-list {
+  display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text-dim);
+}
+.guidelines__token-list span {
+  padding: 4px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+}
+.guidelines__pdf-note {
+  margin-top: 24px; font-size: 12px; color: var(--text-dim); line-height: 1.45;
+  padding: 12px; border: 1px dashed var(--border); border-radius: var(--radius);
+}
+@media (max-width: 600px) {
+  .guidelines__grid-2, .guidelines__vd-grid { grid-template-columns: 1fr; }
+  .guidelines__cover { padding: 32px 20px; }
+  .guidelines__cover h2 { font-size: 1.75rem; }
+}
