@@ -1,0 +1,34 @@
+.voice {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.voice__header {
+  margin-bottom: 24px;
+}
+
+.voice__header h1 {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.voice__header p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.voice__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voice__example {
+  font-style: italic;
+  color: var(--text-muted);
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
+}
