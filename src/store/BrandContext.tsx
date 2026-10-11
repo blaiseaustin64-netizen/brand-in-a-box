@@ -138,7 +138,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    const provider = getAIProvider();
+    getAIProvider(); // warm provider resolution / health probe
     const saved = brandService.loadBrand();
     if (saved) {
       dispatch({ type: 'SET_BRAND', payload: saved });

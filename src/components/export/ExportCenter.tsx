@@ -221,9 +221,9 @@ export function ExportCenter() {
             type="button"
             disabled={!validation.canExport || Boolean(busy)}
             onClick={() =>
-              run('Brand Package JSON', () =>
-                exportBrandPackageJson(brand, assets)
-              )
+              run('Brand Package JSON', () => {
+                exportBrandPackageJson(brand, assets);
+              })
             }
           >
             {busy === 'Brand Package JSON' ? 'Exporting…' : 'Brand Package JSON'}

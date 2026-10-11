@@ -110,7 +110,9 @@ export function buildZip(entries: ZipEntry[]): Blob {
   ]);
 
   const zipBytes = concat([...localParts, centralDir, end]);
-  return new Blob([zipBytes], { type: 'application/zip' });
+  const copy = new Uint8Array(zipBytes.byteLength);
+  copy.set(zipBytes);
+  return new Blob([copy], { type: 'application/zip' });
 }
 
 export function textEntry(name: string, text: string): ZipEntry {

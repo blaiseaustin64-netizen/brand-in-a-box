@@ -1,10 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useBrand } from '../../store/BrandContext';
-import {
-  ASSET_CATEGORIES,
-  ASSET_PRESETS,
-  presetsByCategory,
-} from '../../services/assets/presets';
+import { ASSET_CATEGORIES } from '../../services/assets/presets';
 import type { AssetCategory, BrandAsset } from '../../types/brand';
 import { AssetCreatePanel } from './AssetCreatePanel';
 import { AssetDetail } from './AssetDetail';
@@ -19,7 +15,6 @@ export function AssetStudio() {
     isGeneratingAsset,
     assetError,
     clearAssetError,
-    generateAsset,
   } = useBrand();
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');

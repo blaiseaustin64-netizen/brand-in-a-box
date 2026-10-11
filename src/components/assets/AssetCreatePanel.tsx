@@ -7,7 +7,6 @@ import {
   presetsByCategory,
 } from '../../services/assets/presets';
 import type { AssetCategory } from '../../types/brand';
-import { getAIProvider } from '../../services/ai';
 import './AssetCreatePanel.css';
 
 interface Props {
@@ -20,8 +19,6 @@ export function AssetCreatePanel({ onClose, onCreated }: Props) {
   const [category, setCategory] = useState<AssetCategory | 'all'>('social');
   const [presetId, setPresetId] = useState('ig-post');
   const [instruction, setInstruction] = useState('');
-  const provider = getAIProvider();
-  const supportsImg = Boolean(provider.supportsImageGeneration);
   const [imgConfigured, setImgConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {

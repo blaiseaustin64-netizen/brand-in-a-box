@@ -166,7 +166,7 @@ function buildVoice(input: BrandInput, strategy: BrandStrategy): BrandVoice {
     exampleVoice: `At ${name}, we believe ${strategy.mission.split('.')[0].toLowerCase()}. Our approach is ${personality.toLowerCase()} — we listen first, then build what actually matters.`,
     shortBio: `${name} — ${personality.toLowerCase()} ${input.industry || 'brand'} for ${input.targetAudience || 'modern teams'}.`,
     longDescription: `${name} is a ${personality.toLowerCase()} brand operating in ${input.industry || 'its category'}. ${strategy.positioning} We design every interaction to feel coherent with our visual direction (${input.visualDirection}) and our core values: ${strategy.coreValues.join(', ')}.`,
-    socialBio: `${name} · ${personality} ${input.industry || 'brand'} · ${strategy.tagline || 'Building with intention.'}`.slice(0, 160),
+    socialBio: `${name} · ${personality} ${input.industry || 'brand'} · Building with intention.`.slice(0, 160),
   };
 }
 
@@ -196,7 +196,7 @@ function buildSummary(input: BrandInput, strategy: BrandStrategy, tagline: strin
 function createProfileFromInput(input: BrandInput): BrandProfile {
   const strategy = buildStrategy(input);
   const tagline = buildTagline(input);
-  const voice = buildVoice(input, { ...strategy, tagline } as BrandStrategy & { tagline: string });
+  const voice = buildVoice(input, strategy);
   // Fix social bio with real tagline
   voice.socialBio = `${input.brandName} · ${joinPersonality(input.personality)} ${input.industry || 'brand'} · ${tagline}`.slice(0, 160);
   const summary = buildSummary(input, strategy, tagline);

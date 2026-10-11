@@ -6,7 +6,6 @@
 import type {
   BrandProfile,
   BrandAsset,
-  AssetPreset,
   AssetGenerateResponse,
   AssetGenerateRequest,
   AssetStatus,
@@ -30,27 +29,6 @@ export function loadAssets(brandId: string): BrandAsset[] {
   }
 }
 
-function saveAll(assets: BrandAsset[]): void {
-  try {
-    // Merge with other brands' assets
-    const raw = localStorage.getItem(ASSETS_KEY);
-    const existing = raw ? (JSON.parse(raw) as BrandAsset[]) : [];
-    const ids = new Set(assets.map((a) => a.id));
-    const brandIds = new Set(assets.map((a) => a.brandId));
-    const others = existing.filter(
-      (a) => !brandIds.has(a.brandId) || !ids.has(a.id)
-    );
-    // For this brand, replace with full list passed in
-    const thisBrandId = assets[0]?.brandId;
-    const keptOthers = existing.filter((a) => a.brandId !== thisBrandId);
-    localStorage.setItem(
-      ASSETS_KEY,
-      JSON.stringify([...keptOthers, ...assets])
-    );
-  } catch {
-    // non-fatal
-  }
-}
 
 export function persistAssets(brandId: string, assets: BrandAsset[]): void {
   try {
