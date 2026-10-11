@@ -85,3 +85,10 @@
   .asset-studio__layout:has(.asset-detail) { grid-template-columns: 1fr; }
   .asset-detail { position: fixed; inset: 0; z-index: 50; max-width: none; border-radius: 0; }
 }
+
+.asset-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}

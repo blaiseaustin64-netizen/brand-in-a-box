@@ -53,7 +53,13 @@ export function AssetDetail({ asset, onClose }: Props) {
       </header>
 
       <div className={`asset-detail__frame asset-detail__frame--${frameClass}`}>
-        {current?.svgMarkup ? (
+        {current?.imageUrl ? (
+          <img
+            className="asset-detail__img"
+            src={current.imageUrl}
+            alt={asset.name}
+          />
+        ) : current?.svgMarkup ? (
           <div
             className="asset-detail__svg"
             dangerouslySetInnerHTML={{ __html: current.svgMarkup }}

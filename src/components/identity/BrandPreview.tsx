@@ -36,6 +36,7 @@ export function BrandPreview() {
   const bg = token('background') || '#08090B';
   const surface = token('surface') || '#111318';
   const primary = token('primary') || '#62E6FF';
+  const secondary = token('secondary') || '#8B5CF6';
   const text = token('text') || '#F2F4F7';
   const muted = token('muted') || '#9AA5B1';
   const primaryContrast = token('primaryContrast') || '#0A0C10';

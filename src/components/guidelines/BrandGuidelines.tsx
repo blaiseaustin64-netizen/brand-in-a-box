@@ -503,7 +503,7 @@ function buildGuidelinesHtml(
     voice: { tone: string; exampleVoice: string };
     visualDirection: string;
   },
-  tokens: { colors: Record<string, string> } | null,
+  tokens: { colors: { background: string; text: string; surface: string } } | null,
   foundation: { logoUsage: string; colorUsage: string } | null,
   colors: { name: string; hex: string; role: string; usage: string }[],
   type: { displayFont: string; bodyFont: string } | undefined,

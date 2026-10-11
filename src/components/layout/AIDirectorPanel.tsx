@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { useBrand } from '../../store/BrandContext';
 import type { BrandDirectorAction } from '../../types/brand';
 import './AIDirectorPanel.css';
+import { fetchAiHealth, type AiHealthStatus } from '../../services/ai';
 
 const QUICK_ACTIONS: { action: BrandDirectorAction; label: string }[] = [
   { action: 'make_premium', label: 'More premium' },
@@ -14,6 +16,10 @@ const QUICK_ACTIONS: { action: BrandDirectorAction; label: string }[] = [
 ];
 
 export function AIDirectorPanel() {
+  const [aiStatus, setAiStatus] = useState<AiHealthStatus | null>(null);
+  useEffect(() => {
+    void fetchAiHealth().then(setAiStatus);
+  }, []);
   const {
     brand,
     isGenerating,
@@ -49,6 +55,17 @@ export function AIDirectorPanel() {
           <p className="director__subtitle">
             Context-aware · Provider: {providerName}
           </p>
+          {aiStatus && (
+            <p className="ai-director__status" role="status">
+              {aiStatus.openRouterConfigured
+                ? `Text AI: OpenRouter${aiStatus.openRouterModel ? ` · ${aiStatus.openRouterModel}` : ''}`
+                : 'Text AI: not configured'}
+              {' · '}
+              {aiStatus.workersAiConfigured
+                ? 'Images: Workers AI'
+                : 'Images: unavailable'}
+            </p>
+          )}
         </header>
 
         <div className="director__body">

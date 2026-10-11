@@ -16,6 +16,7 @@ import type {
   VisualDirectionDetail,
   LogoSystem,
   LogoConcept,
+  LogoRole,
   VisualIdentity,
 } from '../../types/brand';
 
@@ -144,6 +145,8 @@ export function buildColorSystem(
   const surfaceElevated = bias.darkBg ? hslToHex(hue, 12, 14) : '#ffffff';
   const text = bias.darkBg ? hslToHex(hue, 5, 95) : hslToHex(hue, 10, 12);
   const muted = bias.darkBg ? hslToHex(hue, 8, 60) : hslToHex(hue, 8, 45);
+  const border = bias.darkBg ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
+  const overlay = bias.darkBg ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.4)';
 
   // solid border hex for contrast math
   const borderHex = bias.darkBg ? hslToHex(hue, 8, 22) : hslToHex(hue, 5, 88);

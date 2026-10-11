@@ -219,3 +219,10 @@
     z-index: 35;
   }
 }
+
+.ai-director__status {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 6px 12px 0;
+  line-height: 1.4;
+}

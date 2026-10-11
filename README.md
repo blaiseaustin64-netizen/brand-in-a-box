@@ -1,99 +1,85 @@
 # VEXDYN Brand-in-a-Box
 
-**Phase 1 — Foundation + AI Brand Director**
+AI-assisted brand workspace: strategy, voice, visual identity, assets, guidelines, and export.
 
-Turn a business idea into a complete, consistent brand identity using AI.
+**Live:** https://brand-in-a-box.pages.dev
 
 ## Stack
 
 - React 19 + Vite + TypeScript
-- CSS (design tokens, no heavy UI library)
-- Local development AI provider (mock) with clean abstraction for future NYVEN
+- CSS design tokens (no heavy UI library)
+- Cloudflare Pages (static) + **Pages Functions** (`/api/*`)
+- OpenRouter (server-side) for brand text intelligence
+- Cloudflare Workers AI binding (`AI`) for raster images
+- Procedural SVG logos and template business assets (client-side)
 
-## Quick start
+## Quick start (local UI only)
 
 ```bash
-cd brand-in-a-box
 npm install
 npm run dev
 ```
 
-Open the URL shown by Vite (typically http://localhost:5173).
+Local Vite does **not** run Pages Functions unless you use:
 
-## What works in Phase 1
-
-- Create-brand onboarding (essentials → personality → visual direction)
-- Brand Profile as central source of truth (typed, serializable)
-- AI Brand Director panel (context-aware actions)
-- Brand Overview, Strategy, Brand Voice sections
-- Section regenerate / approve / inline edit
-- Persistence via localStorage
-- Responsive desktop + mobile layout
-- Premium dark visual system (VEXDYN tokens)
-
-## AI / API configuration
-
-No API keys required for local development.
-
-The app uses `MockAIProvider` (`src/services/ai/mockProvider.ts`), which generates coherent brand content from the user brief.
-
-To plug in a real provider later:
-
-1. Implement the `AIProvider` interface (`src/types/brand.ts` / `src/services/ai/provider.ts`)
-2. Call `setAIProvider(yourProvider)` at bootstrap, or extend `getAIProvider()` to detect env config
-3. Prefer a server proxy so keys never ship to the client
-
-Future NYVEN path:
-
-```
-BrandDirector → AIProvider → NYVEN
+```bash
+npx wrangler pages dev dist
 ```
 
-No UI rewrite required.
+(or point `VITE_API_PROXY` at a deployed preview URL).
 
-## Brand Profile structure
+Without Functions, brand-text AI and Workers AI image calls return clear errors (no silent fake AI).
 
-See `src/types/brand.ts`:
+## Production AI
 
-- Foundation: brandName, industry, description, targetAudience, personality[], visualDirection, keywords
-- Generated: tagline, summary, strategy{}, voice{}
-- Meta: status, approvedSections, id, timestamps
-- Stubs for Phase 2+: visualIdentity
+| Capability | Provider | Where |
+|------------|----------|--------|
+| Strategy, voice, taglines, messaging | OpenRouter | `POST /api/brand-ai` |
+| Campaign / social raster images | Workers AI Flux | `POST /api/generate-image` |
+| Logo concepts | Procedural SVG | Client `generateIdentity.ts` |
+| Business cards / stationery | SVG templates | Client `templateGenerator.ts` |
 
-## Project layout
+### Cloudflare configuration
+
+**Secrets / env (Pages → Settings → Environment variables):**
+
+| Name | Required | Purpose |
+|------|----------|---------|
+| `OPENROUTER_API_KEY` | Yes for text AI | Server-only OpenRouter key |
+| `OPENROUTER_MODEL` | Optional | Default `google/gemma-4-26b-a4b-it:free` |
+| `OPENROUTER_FALLBACK_MODEL` | Optional | Default `openrouter/free` |
+
+**Bindings:**
+
+| Binding | Type | Purpose |
+|---------|------|---------|
+| `AI` | Workers AI | Image generation |
+
+Never put `OPENROUTER_API_KEY` in `VITE_*` vars or frontend code.
+
+### Models
+
+- **Text:** `google/gemma-4-26b-a4b-it:free` (free-tier OpenRouter; change via env). Free models are rate-limited and may rotate.
+- **Image:** `@cf/black-forest-labs/flux-1-schnell` (Workers AI; response is base64 JPEG).
+
+## Architecture
 
 ```
-src/
-  types/brand.ts              # BrandProfile + AI contracts
-  services/
-    ai/                       # Provider abstraction + mock
-    brandService.ts           # Persistence + orchestration
-  store/BrandContext.tsx      # App state
-  components/
-    layout/                   # Sidebar, Director, Workspace
-    create/                   # Onboarding flow
-    overview/ strategy/ voice/
-    shared/SectionCard.tsx
-  styles/                     # Tokens + global
+UI → RemoteAIProvider → /api/brand-ai → OpenRouter
+                     → /api/generate-image → env.AI.run(flux)
+                     → local procedural identity (logos/colors/type)
+MockAIProvider remains for offline/demo injection via setAIProvider().
 ```
 
-## Testing
+## Persistence
 
-1. `npm run dev`
-2. Create a brand with name + description (minimum)
-3. Walk Overview → Strategy → Voice
-4. Regenerate a section; approve it; confirm regenerate is blocked
-5. Use Director quick actions (More premium, Explain why, …)
-6. Refresh the page — brand should restore from localStorage
-7. Resize to mobile — use top bar for nav / Director
+Brand profile + assets: browser `localStorage`.  
+Raster images may be stored as data URLs in asset versions — **large**; not durable multi-device storage.
 
-## Not in this phase
+## Scripts
 
-- Logo / image generation
-- Color & typography systems (Phase 2)
-- Forge / X-Ray / NYVEN connections
-- Export / brand book PDF
-
-## License
-
-Proprietary — VEXDYN
+```bash
+npm run dev
+npm run build
+npm run lint
+```

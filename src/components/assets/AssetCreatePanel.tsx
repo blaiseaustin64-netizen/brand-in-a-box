@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchAiHealth } from '../../services/ai';
 import { useBrand } from '../../store/BrandContext';
 import {
   ASSET_CATEGORIES,
@@ -21,6 +22,11 @@ export function AssetCreatePanel({ onClose, onCreated }: Props) {
   const [instruction, setInstruction] = useState('');
   const provider = getAIProvider();
   const supportsImg = Boolean(provider.supportsImageGeneration);
+  const [imgConfigured, setImgConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void fetchAiHealth().then((h) => setImgConfigured(h.workersAiConfigured));
+  }, []);
 
   const presets = presetsByCategory(category);
 
@@ -61,11 +67,18 @@ export function AssetCreatePanel({ onClose, onCreated }: Props) {
           to re-enter brand details.
         </p>
 
-        {!supportsImg && (
+        {imgConfigured === false && (
           <div className="acp__notice">
-            Raster image generation is not configured. Assets are produced as
-            branded SVG templates from your palette, type, and voice — honest
-            system outputs, not fake AI photos.
+            Workers AI is not available in this deployment. Social/campaign
+            presets will use branded SVG templates. Business cards and stationery
+            always use editable templates.
+          </div>
+        )}
+        {imgConfigured === true && (
+          <div className="acp__notice acp__notice--ok">
+            Raster image generation is available via Cloudflare Workers AI for
+            social and campaign visuals. Logos remain procedural SVG. Business
+            assets stay template-based.
           </div>
         )}
 

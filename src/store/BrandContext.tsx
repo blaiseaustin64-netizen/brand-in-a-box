@@ -15,6 +15,7 @@ import type {
 } from '../types/brand';
 import * as brandService from '../services/brandService';
 import * as assetService from '../services/assets/assetService';
+import { getAIProvider } from '../services/ai';
 
 type ViewId =
   | 'create'
@@ -137,6 +138,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
+    const provider = getAIProvider();
     const saved = brandService.loadBrand();
     if (saved) {
       dispatch({ type: 'SET_BRAND', payload: saved });

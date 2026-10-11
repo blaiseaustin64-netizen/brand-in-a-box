@@ -6,6 +6,7 @@
 import type {
   BrandProfile,
   BrandAsset,
+  AssetPreset,
   AssetGenerateResponse,
   AssetGenerateRequest,
   AssetStatus,
@@ -26,6 +27,28 @@ export function loadAssets(brandId: string): BrandAsset[] {
     return all.filter((a) => a.brandId === brandId);
   } catch {
     return [];
+  }
+}
+
+function saveAll(assets: BrandAsset[]): void {
+  try {
+    // Merge with other brands' assets
+    const raw = localStorage.getItem(ASSETS_KEY);
+    const existing = raw ? (JSON.parse(raw) as BrandAsset[]) : [];
+    const ids = new Set(assets.map((a) => a.id));
+    const brandIds = new Set(assets.map((a) => a.brandId));
+    const others = existing.filter(
+      (a) => !brandIds.has(a.brandId) || !ids.has(a.id)
+    );
+    // For this brand, replace with full list passed in
+    const thisBrandId = assets[0]?.brandId;
+    const keptOthers = existing.filter((a) => a.brandId !== thisBrandId);
+    localStorage.setItem(
+      ASSETS_KEY,
+      JSON.stringify([...keptOthers, ...assets])
+    );
+  } catch {
+    // non-fatal
   }
 }
 
@@ -170,14 +193,25 @@ export function downloadAssetVersion(asset: BrandAsset, versionId?: string): voi
   const ver =
     asset.versions.find((v) => v.id === (versionId || asset.currentVersionId)) ||
     asset.versions[asset.versions.length - 1];
-  if (!ver?.svgMarkup) {
+  if (!ver) {
+    throw new Error('No downloadable content for this version.');
+  }
+  const base = asset.name.replace(/\s+/g, '-').toLowerCase();
+  if (ver.imageUrl) {
+    const a = document.createElement('a');
+    a.href = ver.imageUrl;
+    a.download = `${base}-v${ver.version}.jpg`;
+    a.click();
+    return;
+  }
+  if (!ver.svgMarkup) {
     throw new Error('No downloadable content for this version.');
   }
   const blob = new Blob([ver.svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${asset.name.replace(/\s+/g, '-').toLowerCase()}-v${ver.version}.svg`;
+  a.download = `${base}-v${ver.version}.svg`;
   a.click();
   URL.revokeObjectURL(url);
 }

@@ -19,7 +19,7 @@ const TABS: { id: IdentityTab; label: string }[] = [
 ];
 
 export function IdentityStudio() {
-  const { brand, isGenerating, generateIdentity } = useBrand();
+  const { brand, isGenerating, generateIdentity, runAction } = useBrand();
   const [tab, setTab] = useState<IdentityTab>('overview');
 
   const vi = brand?.visualIdentity;
@@ -122,7 +122,7 @@ function IdentityOverview({
 }: {
   onNavigate: (t: IdentityTab) => void;
 }) {
-  const { brand, runAction, isGenerating } = useBrand();
+  const { brand, runAction, isGenerating, approveIdentityPart } = useBrand();
   const vi = brand!.visualIdentity!;
 
   const cards: {

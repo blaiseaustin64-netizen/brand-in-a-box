@@ -46,7 +46,7 @@ export function ExportCenter() {
 
   if (!brand) return null;
 
-  const run = async (label: string, fn: () => unknown) => {
+  const run = async (label: string, fn: () => void | Promise<void>) => {
     setBusy(label);
     setError(null);
     setSuccess(null);

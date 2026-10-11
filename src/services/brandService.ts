@@ -140,11 +140,11 @@ export function updateSectionText(
   next.updatedAt = new Date().toISOString();
 
   if (path === 'root') {
-    (next as unknown as Record<string, unknown>)[key] = value;
+    (next as Record<string, unknown>)[key] = value;
   } else if (path === 'strategy') {
-    (next.strategy as unknown as Record<string, unknown>)[key] = value;
+    (next.strategy as Record<string, unknown>)[key] = value;
   } else if (path === 'voice') {
-    (next.voice as unknown as Record<string, unknown>)[key] = value;
+    (next.voice as Record<string, unknown>)[key] = value;
   }
 
   saveBrand(next);

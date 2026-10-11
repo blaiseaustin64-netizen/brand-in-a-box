@@ -110,7 +110,7 @@ export function buildZip(entries: ZipEntry[]): Blob {
   ]);
 
   const zipBytes = concat([...localParts, centralDir, end]);
-  return new Blob([new Uint8Array(zipBytes)], { type: 'application/zip' });
+  return new Blob([zipBytes], { type: 'application/zip' });
 }
 
 export function textEntry(name: string, text: string): ZipEntry {
