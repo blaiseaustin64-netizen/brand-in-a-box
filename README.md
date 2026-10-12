@@ -83,3 +83,11 @@ npm run dev
 npm run build
 npm run lint
 ```
+
+
+## Cloudflare Pages notes
+
+- **No SPA catch-all redirect.** This app uses React view state, not URL routes. A `/* → /index.html 200` rule caused Cloudflare infinite-loop warnings and can interfere with Functions.
+- **`public/_routes.json`** limits the Worker to `/api/*` so static assets are served without invoking Functions.
+- **`wrangler.toml`** sets `compatibility_date` and `pages_build_output_dir = "dist"`.
+- Secrets/bindings stay in the Pages dashboard: `OPENROUTER_API_KEY`, Workers AI binding `AI`.

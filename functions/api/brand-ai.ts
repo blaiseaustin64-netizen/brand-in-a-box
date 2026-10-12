@@ -6,6 +6,7 @@
 
 import {
   type Env,
+  type AppPagesFunction,
   json,
   handleOptions,
   readJsonBody,
@@ -22,9 +23,9 @@ interface BrandAIRequest {
   alternativesCount?: number;
 }
 
-export const onRequestOptions: PagesFunction = async () => handleOptions();
+export const onRequestOptions: AppPagesFunction = async () => handleOptions();
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
+export const onRequestPost: AppPagesFunction<Env> = async (context) => {
   const env = context.env;
   if (!env.OPENROUTER_API_KEY) {
     return json(

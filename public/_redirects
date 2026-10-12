@@ -1,1 +1,3 @@
-/*    /index.html   200
+# Brand-in-a-Box does not use client-side URL routing (view state is in React).
+# A /* → /index.html 200 rule caused Cloudflare to report an infinite loop
+# and can interfere with /api/* Pages Functions. Do not restore the catch-all.

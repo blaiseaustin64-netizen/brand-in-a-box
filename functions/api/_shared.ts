@@ -1,13 +1,34 @@
-/** Shared helpers for Cloudflare Pages Functions */
+/**
+ * Shared helpers for Cloudflare Pages Functions (Workers runtime).
+ * No Node.js-only APIs. No secrets in responses.
+ */
 
 export interface Env {
   OPENROUTER_API_KEY?: string;
   OPENROUTER_MODEL?: string;
   OPENROUTER_FALLBACK_MODEL?: string;
+  /** Workers AI binding configured in Pages dashboard as "AI" */
   AI?: {
-    run: (model: string, input: Record<string, unknown>) => Promise<unknown>;
+    run: (
+      model: string,
+      input: Record<string, unknown>
+    ) => Promise<unknown>;
   };
 }
+
+/** Minimal context shape used by our handlers (avoids ambient PagesFunction). */
+export interface FunctionContext<E = Env> {
+  request: Request;
+  env: E;
+  params: Record<string, string>;
+  waitUntil: (promise: Promise<unknown>) => void;
+  next: (input?: Request | string, init?: RequestInit) => Promise<Response>;
+  data: Record<string, unknown>;
+}
+
+export type AppPagesFunction<E = Env> = (
+  context: FunctionContext<E>
+) => Response | Promise<Response>;
 
 export const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -47,8 +68,9 @@ export async function readJsonBody(
   }
 }
 
-/** Default free-tier OpenRouter model (change via OPENROUTER_MODEL env). */
+/** Default free-tier OpenRouter model (override with OPENROUTER_MODEL). */
 export const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-26b-a4b-it:free';
 export const FALLBACK_OPENROUTER_MODEL = 'openrouter/free';
 
+/** Cloudflare Workers AI text-to-image model */
 export const DEFAULT_IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
