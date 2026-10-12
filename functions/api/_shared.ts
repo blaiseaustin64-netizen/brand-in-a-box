@@ -68,9 +68,25 @@ export async function readJsonBody(
   }
 }
 
-/** Default free-tier OpenRouter model (override with OPENROUTER_MODEL). */
-export const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-26b-a4b-it:free';
+/**
+ * Primary text model (OpenRouter free route).
+ * Override with OPENROUTER_MODEL in Pages env if needed.
+ */
+export const DEFAULT_OPENROUTER_MODEL =
+  'nvidia/nemotron-3-super-120b-a12b:free';
+
+/**
+ * Optional secondary model — used only when primary is unavailable
+ * (404 / model not found), never as a silent success path.
+ * Override with OPENROUTER_FALLBACK_MODEL.
+ */
 export const FALLBACK_OPENROUTER_MODEL = 'openrouter/free';
 
 /** Cloudflare Workers AI text-to-image model */
 export const DEFAULT_IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
+
+/** OpenRouter request timeout (ms) — large models need headroom */
+export const OPENROUTER_TIMEOUT_MS = 90_000;
+
+/** Max transient retries (429 / 5xx / network) per model attempt */
+export const OPENROUTER_MAX_RETRIES = 2;

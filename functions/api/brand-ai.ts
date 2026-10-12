@@ -1,7 +1,8 @@
 /**
  * POST /api/brand-ai
  * Server-side OpenRouter brand intelligence.
- * Never returns the API key. Never invents success without a model response.
+ * Primary model: nvidia/nemotron-3-super-120b-a12b:free (overridable via OPENROUTER_MODEL)
+ * Never returns the API key. Never invents success without a validated model response.
  */
 
 import {
@@ -12,6 +13,8 @@ import {
   readJsonBody,
   DEFAULT_OPENROUTER_MODEL,
   FALLBACK_OPENROUTER_MODEL,
+  OPENROUTER_TIMEOUT_MS,
+  OPENROUTER_MAX_RETRIES,
 } from './_shared';
 
 interface BrandAIRequest {
@@ -53,46 +56,33 @@ export const onRequestPost: AppPagesFunction<Env> = async (context) => {
     );
   }
 
-  // Identity / logo / pure visual actions stay client-side procedural
-  const clientSideActions = new Set([
-    'generate_identity',
-    'generate_logo_concepts',
-    'generate_colors',
-    'generate_typography',
-    'generate_visual_direction',
-    'make_minimal',
-    'increase_contrast',
-    'make_darker',
-    'make_lighter',
-    'reduce_saturation',
-    'make_typography_stronger',
-  ]);
-  if (clientSideActions.has(req.action)) {
-    return json(
-      {
-        success: false,
-        error:
-          'This action is handled client-side (procedural identity / SVG logos). Call the local identity generators instead.',
-        provider: 'openrouter',
-        clientSide: true,
-      },
-      400
-    );
-  }
-
   const model =
-    env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL;
+    (typeof env.OPENROUTER_MODEL === 'string' && env.OPENROUTER_MODEL.trim()) ||
+    DEFAULT_OPENROUTER_MODEL;
   const fallback =
-    env.OPENROUTER_FALLBACK_MODEL?.trim() || FALLBACK_OPENROUTER_MODEL;
+    (typeof env.OPENROUTER_FALLBACK_MODEL === 'string' &&
+      env.OPENROUTER_FALLBACK_MODEL.trim()) ||
+    FALLBACK_OPENROUTER_MODEL;
 
   try {
     const messages = buildMessages(req);
-    let result = await callOpenRouter(env.OPENROUTER_API_KEY, model, messages);
+    let result = await callOpenRouter(env.OPENROUTER_API_KEY, model, messages, {
+      preferJsonObject: true,
+    });
     let usedModel = model;
+    let usedFallback = false;
 
-    if (!result.ok && model !== fallback) {
-      result = await callOpenRouter(env.OPENROUTER_API_KEY, fallback, messages);
+    // Only switch model when primary is unavailable (not on parse/timeout of content)
+    if (
+      !result.ok &&
+      model !== fallback &&
+      isModelUnavailableError(result.error)
+    ) {
+      result = await callOpenRouter(env.OPENROUTER_API_KEY, fallback, messages, {
+        preferJsonObject: true,
+      });
       usedModel = fallback;
+      usedFallback = true;
     }
 
     if (!result.ok) {
@@ -102,12 +92,42 @@ export const onRequestPost: AppPagesFunction<Env> = async (context) => {
           error: result.error,
           provider: 'openrouter',
           model: usedModel,
+          usedFallback,
         },
         502
       );
     }
 
-    const parsed = parseBrandPayload(result.content, req);
+    let parsed = parseBrandPayload(result.content, req);
+
+    // One controlled repair attempt when JSON is malformed
+    if (!parsed.ok) {
+      const repairMessages = [
+        ...messages,
+        {
+          role: 'assistant' as const,
+          content: result.content.slice(0, 6000),
+        },
+        {
+          role: 'user' as const,
+          content:
+            'Your previous reply was not valid JSON for the required schema. Reply with ONLY a single valid JSON object matching the schema. No markdown fences, no commentary.',
+        },
+      ];
+      const repaired = await callOpenRouter(
+        env.OPENROUTER_API_KEY,
+        usedModel,
+        repairMessages,
+        { preferJsonObject: true }
+      );
+      if (repaired.ok) {
+        parsed = parseBrandPayload(repaired.content, req);
+        if (parsed.ok) {
+          result = repaired;
+        }
+      }
+    }
+
     if (!parsed.ok) {
       return json(
         {
@@ -115,6 +135,7 @@ export const onRequestPost: AppPagesFunction<Env> = async (context) => {
           error: parsed.error,
           provider: 'openrouter',
           model: usedModel,
+          usedFallback,
           rawPreview: result.content.slice(0, 400),
         },
         502
@@ -125,6 +146,7 @@ export const onRequestPost: AppPagesFunction<Env> = async (context) => {
       success: true,
       provider: 'openrouter',
       model: usedModel,
+      usedFallback,
       profile: parsed.profile,
       explanation: parsed.explanation,
       alternatives: parsed.alternatives,
@@ -144,9 +166,20 @@ export const onRequestPost: AppPagesFunction<Env> = async (context) => {
   }
 };
 
+function isModelUnavailableError(error: string): boolean {
+  const e = error.toLowerCase();
+  return (
+    e.includes('not found') ||
+    e.includes('no endpoints') ||
+    e.includes('model') && e.includes('unavailable') ||
+    e.includes('(404)') ||
+    e.includes('invalid model')
+  );
+}
+
 function buildMessages(req: BrandAIRequest): { role: string; content: string }[] {
   const system = `You are a senior brand strategist for VEXDYN Brand-in-a-Box.
-Return ONLY valid JSON (no markdown fences) matching the schema requested.
+Return ONLY valid JSON (no markdown fences, no prose outside JSON) matching the schema requested.
 Be specific to the brand inputs. Avoid generic filler.
 Do not invent facts not implied by the brief.
 Keep tone professional and premium.`;
@@ -222,77 +255,143 @@ Keep tone professional and premium.`;
   ];
 }
 
+type CallOpts = { preferJsonObject: boolean };
+
 async function callOpenRouter(
   apiKey: string,
   model: string,
-  messages: { role: string; content: string }[]
+  messages: { role: string; content: string }[],
+  opts: CallOpts
 ): Promise<{ ok: true; content: string } | { ok: false; error: string }> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 55_000);
-  try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://brand-in-a-box.pages.dev',
-        'X-Title': 'VEXDYN Brand-in-a-Box',
-      },
-      body: JSON.stringify({
+  let lastError = 'OpenRouter request failed.';
+  let useJsonObject = opts.preferJsonObject;
+
+  for (let attempt = 0; attempt <= OPENROUTER_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const backoff = Math.min(8000, 1000 * 2 ** (attempt - 1));
+      await sleep(backoff);
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
+
+    try {
+      const body: Record<string, unknown> = {
         model,
         messages,
-        temperature: 0.7,
+        temperature: 0.65,
         max_tokens: 4096,
-        response_format: { type: 'json_object' },
-      }),
-      signal: controller.signal,
-    });
-
-    if (res.status === 429) {
-      return {
-        ok: false,
-        error: 'OpenRouter rate limit reached. Wait a moment and retry.',
       };
-    }
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      return {
-        ok: false,
-        error: `OpenRouter error (${res.status}): ${errText.slice(0, 300) || res.statusText}`,
-      };
-    }
+      if (useJsonObject) {
+        body.response_format = { type: 'json_object' };
+      }
 
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-      error?: { message?: string };
-    };
-    if (data.error?.message) {
-      return { ok: false, error: data.error.message };
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://brand-in-a-box.pages.dev',
+          'X-Title': 'VEXDYN Brand-in-a-Box',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        return {
+          ok: false,
+          error: `OpenRouter authentication failed (${res.status}). Check OPENROUTER_API_KEY.`,
+        };
+      }
+
+      if (res.status === 429) {
+        lastError = 'OpenRouter rate limit reached. Wait a moment and retry.';
+        const retryAfter = res.headers.get('Retry-After');
+        const waitSec = retryAfter ? Number(retryAfter) : 0;
+        if (waitSec > 0 && waitSec < 30) {
+          await sleep(waitSec * 1000);
+        }
+        continue; // retryable
+      }
+
+      if (res.status >= 500) {
+        lastError = `OpenRouter server error (${res.status}).`;
+        continue; // retryable
+      }
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        // Some models reject response_format — retry once without it
+        if (
+          useJsonObject &&
+          (res.status === 400 || res.status === 422) &&
+          /response_format|json_object|unsupported/i.test(errText)
+        ) {
+          useJsonObject = false;
+          lastError = `OpenRouter rejected json_object format; retrying without it.`;
+          continue;
+        }
+        return {
+          ok: false,
+          error: `OpenRouter error (${res.status}): ${errText.slice(0, 300) || res.statusText}`,
+        };
+      }
+
+      const data = (await res.json()) as {
+        choices?: { message?: { content?: string } }[];
+        error?: { message?: string };
+      };
+      if (data.error?.message) {
+        const msg = data.error.message;
+        if (/response_format|json_object/i.test(msg) && useJsonObject) {
+          useJsonObject = false;
+          lastError = msg;
+          continue;
+        }
+        return { ok: false, error: msg };
+      }
+      const content = data.choices?.[0]?.message?.content;
+      if (!content || typeof content !== 'string' || !content.trim()) {
+        lastError = 'OpenRouter returned an empty response.';
+        continue;
+      }
+      return { ok: true, content };
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        lastError = `OpenRouter request timed out after ${OPENROUTER_TIMEOUT_MS / 1000}s.`;
+        continue; // retry once more on timeout
+      }
+      lastError =
+        err instanceof Error ? err.message : 'Network error calling OpenRouter.';
+      continue;
+    } finally {
+      clearTimeout(timer);
     }
-    const content = data.choices?.[0]?.message?.content;
-    if (!content || typeof content !== 'string') {
-      return { ok: false, error: 'OpenRouter returned an empty response.' };
-    }
-    return { ok: true, content };
-  } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      return { ok: false, error: 'OpenRouter request timed out.' };
-    }
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : 'Network error calling OpenRouter.',
-    };
-  } finally {
-    clearTimeout(timer);
   }
+
+  return { ok: false, error: lastError };
 }
 
-function stripFences(text: string): string {
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Strip fences and extract the outermost JSON object when the model adds prose. */
+function extractJsonObject(text: string): string {
   let t = text.trim();
   if (t.startsWith('```')) {
-    t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
   }
-  return t.trim();
+  t = t.trim();
+  if (t.startsWith('{') && t.endsWith('}')) return t;
+
+  const start = t.indexOf('{');
+  const end = t.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    return t.slice(start, end + 1);
+  }
+  return t;
 }
 
 function parseBrandPayload(
@@ -307,7 +406,8 @@ function parseBrandPayload(
     }
   | { ok: false; error: string } {
   try {
-    const raw = JSON.parse(stripFences(content)) as Record<string, unknown>;
+    const extracted = extractJsonObject(content);
+    const raw = JSON.parse(extracted) as Record<string, unknown>;
     const base = (req.brand || {}) as Record<string, unknown>;
     const input = (req.input || {}) as Record<string, unknown>;
 
@@ -315,6 +415,21 @@ function parseBrandPayload(
     const voiceIn = (raw.voice || {}) as Record<string, unknown>;
     const prevStrategy = (base.strategy || {}) as Record<string, unknown>;
     const prevVoice = (base.voice || {}) as Record<string, unknown>;
+
+    // Require at least one meaningful strategy field from the model
+    const hasSignal =
+      Boolean(str(strategyIn.positioning, '')) ||
+      Boolean(str(raw.tagline, '')) ||
+      Boolean(str(strategyIn.mission, '')) ||
+      Boolean(str(voiceIn.tone, ''));
+
+    if (!hasSignal) {
+      return {
+        ok: false,
+        error:
+          'Model JSON parsed but lacked required brand fields (tagline/positioning/mission/tone).',
+      };
+    }
 
     const now = new Date().toISOString();
     const profile: Record<string, unknown> = {
@@ -346,14 +461,8 @@ function parseBrandPayload(
         (input.additionalNotes as string) ||
         (base.additionalNotes as string) ||
         undefined,
-      tagline:
-        (raw.tagline as string) ||
-        (base.tagline as string) ||
-        '',
-      summary:
-        (raw.summary as string) ||
-        (base.summary as string) ||
-        '',
+      tagline: str(raw.tagline, base.tagline),
+      summary: str(raw.summary, base.summary),
       strategy: {
         positioning: str(strategyIn.positioning, prevStrategy.positioning),
         mission: str(strategyIn.mission, prevStrategy.mission),
@@ -380,34 +489,17 @@ function parseBrandPayload(
         wordsToAvoid: arr(voiceIn.wordsToAvoid, prevVoice.wordsToAvoid),
         messagingPrinciples: arr(
           voiceIn.messagingPrinciples,
-          prevVoice.messagingPrinciples
+          prevVoice.messagingPrinciples || prevStrategy.messagingPrinciples
         ),
         exampleVoice: str(voiceIn.exampleVoice, prevVoice.exampleVoice),
         shortBio: str(voiceIn.shortBio, prevVoice.shortBio),
         longDescription: str(voiceIn.longDescription, prevVoice.longDescription),
-        socialBio: str(voiceIn.socialBio, prevVoice.socialBio),
+        socialBio: str(voiceIn.socialBio, prevVoice.socialBio).slice(0, 160),
       },
-      visualIdentity: base.visualIdentity,
       approvedSections: base.approvedSections || {},
-      history: base.history,
+      visualIdentity: base.visualIdentity || undefined,
+      history: base.history || [],
     };
-
-    // Client will also enforce approvedSections; do a server-side soft respect
-    const approved = (base.approvedSections || {}) as Record<string, boolean>;
-    if (req.brand && Object.keys(approved).length) {
-      profile.strategy = mergeApprovedStrategy(
-        prevStrategy,
-        profile.strategy as Record<string, unknown>,
-        approved
-      );
-      profile.voice = mergeApprovedVoice(
-        prevVoice,
-        profile.voice as Record<string, unknown>,
-        approved
-      );
-      if (approved.tagline && base.tagline) profile.tagline = base.tagline;
-      if (approved.summary && base.summary) profile.summary = base.summary;
-    }
 
     return {
       ok: true,
@@ -433,58 +525,13 @@ function str(v: unknown, fallback: unknown): string {
 }
 
 function arr(v: unknown, fallback: unknown): string[] {
-  if (Array.isArray(v) && v.every((x) => typeof x === 'string')) {
-    return v as string[];
+  if (Array.isArray(v)) {
+    return v.filter((x): x is string => typeof x === 'string' && x.trim()).map((x) => x.trim());
   }
-  if (Array.isArray(fallback)) return fallback as string[];
+  if (Array.isArray(fallback)) {
+    return (fallback as unknown[]).filter(
+      (x): x is string => typeof x === 'string'
+    );
+  }
   return [];
-}
-
-function mergeApprovedStrategy(
-  prev: Record<string, unknown>,
-  next: Record<string, unknown>,
-  approved: Record<string, boolean>
-): Record<string, unknown> {
-  const map: Record<string, string> = {
-    positioning: 'positioning',
-    mission: 'mission',
-    vision: 'vision',
-    brandStory: 'brandStory',
-    targetAudience: 'targetAudienceDetail',
-    personality: 'personalityDetail',
-    coreValues: 'coreValues',
-    messagingPrinciples: 'messagingPrinciples',
-  };
-  const out = { ...next };
-  for (const [section, field] of Object.entries(map)) {
-    if (approved[section] && prev[field] !== undefined) {
-      out[field] = prev[field];
-    }
-  }
-  return out;
-}
-
-function mergeApprovedVoice(
-  prev: Record<string, unknown>,
-  next: Record<string, unknown>,
-  approved: Record<string, boolean>
-): Record<string, unknown> {
-  const map: Record<string, string> = {
-    toneOfVoice: 'tone',
-    writingStyle: 'writingStyle',
-    wordsToUse: 'wordsToUse',
-    wordsToAvoid: 'wordsToAvoid',
-    exampleVoice: 'exampleVoice',
-    shortBio: 'shortBio',
-    longDescription: 'longDescription',
-    socialBio: 'socialBio',
-    messagingPrinciples: 'messagingPrinciples',
-  };
-  const out = { ...next };
-  for (const [section, field] of Object.entries(map)) {
-    if (approved[section] && prev[field] !== undefined) {
-      out[field] = prev[field];
-    }
-  }
-  return out;
 }

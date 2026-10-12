@@ -53,6 +53,7 @@ type Action =
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_DIRECTOR_MESSAGE'; payload: string | null }
+  | { type: 'SET_PROVIDER_NAME'; payload: string }
   | { type: 'SET_MOBILE_NAV'; payload: boolean }
   | { type: 'SET_MOBILE_DIRECTOR'; payload: boolean }
   | { type: 'SET_ASSETS'; payload: BrandAsset[] }
@@ -65,7 +66,7 @@ const initialState: BrandState = {
   isGenerating: false,
   error: null,
   directorMessage: null,
-  providerName: 'mock-dev',
+  providerName: 'openrouter+workers-ai',
   providerConfigured: true,
   mobileNavOpen: false,
   mobileDirectorOpen: false,
@@ -90,6 +91,8 @@ function reducer(state: BrandState, action: Action): BrandState {
       return { ...state, error: action.payload };
     case 'SET_DIRECTOR_MESSAGE':
       return { ...state, directorMessage: action.payload };
+    case 'SET_PROVIDER_NAME':
+      return { ...state, providerName: action.payload };
     case 'SET_MOBILE_NAV':
       return { ...state, mobileNavOpen: action.payload };
     case 'SET_MOBILE_DIRECTOR':
@@ -138,7 +141,8 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
-    getAIProvider(); // warm provider resolution / health probe
+    const provider = getAIProvider(); // warm provider resolution / health probe
+    dispatch({ type: 'SET_PROVIDER_NAME', payload: provider.name });
     const saved = brandService.loadBrand();
     if (saved) {
       dispatch({ type: 'SET_BRAND', payload: saved });
@@ -187,6 +191,12 @@ export function BrandProvider({ children }: { children: ReactNode }) {
       }
 
       dispatch({ type: 'SET_BRAND', payload: response.profile });
+      if (response.provider) {
+        const label = response.model
+          ? `${response.provider} · ${response.model}`
+          : response.provider;
+        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      }
       dispatch({ type: 'SET_ASSETS', payload: [] });
       dispatch({ type: 'SET_VIEW', payload: 'overview' });
       dispatch({
@@ -228,6 +238,13 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           return;
         }
         dispatch({ type: 'SET_BRAND', payload: response.profile });
+      if (response.provider) {
+        const label = response.model
+          ? `${response.provider} · ${response.model}`
+          : response.provider;
+        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      }
+
         dispatch({
           type: 'SET_DIRECTOR_MESSAGE',
           payload: 'Section updated. Approve when it feels right.',
@@ -269,6 +286,13 @@ export function BrandProvider({ children }: { children: ReactNode }) {
         }
         if (response.profile) {
           dispatch({ type: 'SET_BRAND', payload: response.profile });
+      if (response.provider) {
+        const label = response.model
+          ? `${response.provider} · ${response.model}`
+          : response.provider;
+        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      }
+
         }
         if (response.explanation) {
           dispatch({
@@ -374,6 +398,13 @@ export function BrandProvider({ children }: { children: ReactNode }) {
         return;
       }
       dispatch({ type: 'SET_BRAND', payload: response.profile });
+      if (response.provider) {
+        const label = response.model
+          ? `${response.provider} · ${response.model}`
+          : response.provider;
+        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      }
+
       dispatch({
         type: 'SET_DIRECTOR_MESSAGE',
         payload: 'Visual identity ready. Review logo, colors, and type.',

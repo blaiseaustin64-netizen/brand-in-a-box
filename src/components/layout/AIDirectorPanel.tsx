@@ -18,7 +18,7 @@ const QUICK_ACTIONS: { action: BrandDirectorAction; label: string }[] = [
 export function AIDirectorPanel() {
   const [aiStatus, setAiStatus] = useState<AiHealthStatus | null>(null);
   useEffect(() => {
-    void fetchAiHealth().then(setAiStatus);
+    void fetchAiHealth(true).then(setAiStatus);
   }, []);
   const {
     brand,
@@ -62,8 +62,8 @@ export function AIDirectorPanel() {
                 : 'Text AI: not configured'}
               {' · '}
               {aiStatus.workersAiConfigured
-                ? 'Images: Workers AI'
-                : 'Images: unavailable'}
+                ? `Images: Workers AI${aiStatus.imageModel ? ` · ${aiStatus.imageModel}` : ''}`
+                : 'Images: unavailable (AI binding not detected)'}
             </p>
           )}
         </header>

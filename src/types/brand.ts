@@ -307,6 +307,9 @@ export interface AIGenerateResponse {
   explanation?: string;
   error?: string;
   provider: string;
+  /** OpenRouter / Workers AI model id when a remote call succeeded */
+  model?: string;
+  usedFallback?: boolean;
 }
 
 export interface AIProvider {

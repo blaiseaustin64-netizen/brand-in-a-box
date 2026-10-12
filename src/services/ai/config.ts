@@ -10,9 +10,9 @@ export const AI_ENDPOINTS = {
   generateImage: '/api/generate-image',
 } as const;
 
-/** Documented defaults — actual server model may differ via env */
+/** Documented defaults — actual server model may differ via OPENROUTER_MODEL env */
 export const DOCUMENTED_DEFAULTS = {
-  openRouterModel: 'google/gemma-4-26b-a4b-it:free',
+  openRouterModel: 'nvidia/nemotron-3-super-120b-a12b:free',
   openRouterFallback: 'openrouter/free',
   imageModel: '@cf/black-forest-labs/flux-1-schnell',
 } as const;
@@ -27,14 +27,17 @@ export interface AiHealthStatus {
 }
 
 let cachedHealth: { at: number; status: AiHealthStatus } | null = null;
-const HEALTH_TTL_MS = 60_000;
+const HEALTH_TTL_MS = 30_000;
 
 export async function fetchAiHealth(force = false): Promise<AiHealthStatus> {
   if (!force && cachedHealth && Date.now() - cachedHealth.at < HEALTH_TTL_MS) {
     return cachedHealth.status;
   }
   try {
-    const res = await fetch(AI_ENDPOINTS.health, { method: 'GET' });
+    const res = await fetch(AI_ENDPOINTS.health, {
+      method: 'GET',
+      cache: 'no-store',
+    });
     if (!res.ok) {
       const status: AiHealthStatus = {
         ok: false,
@@ -45,13 +48,19 @@ export async function fetchAiHealth(force = false): Promise<AiHealthStatus> {
       cachedHealth = { at: Date.now(), status };
       return status;
     }
-    const data = (await res.json()) as AiHealthStatus;
+    const data = (await res.json()) as AiHealthStatus & Record<string, unknown>;
     const status: AiHealthStatus = {
-      ok: true,
+      ok: Boolean(data.ok),
       openRouterConfigured: Boolean(data.openRouterConfigured),
       workersAiConfigured: Boolean(data.workersAiConfigured),
-      openRouterModel: data.openRouterModel,
-      imageModel: data.imageModel,
+      openRouterModel:
+        typeof data.openRouterModel === 'string'
+          ? data.openRouterModel
+          : DOCUMENTED_DEFAULTS.openRouterModel,
+      imageModel:
+        typeof data.imageModel === 'string'
+          ? data.imageModel
+          : DOCUMENTED_DEFAULTS.imageModel,
     };
     cachedHealth = { at: Date.now(), status };
     return status;
@@ -60,9 +69,14 @@ export async function fetchAiHealth(force = false): Promise<AiHealthStatus> {
       ok: false,
       openRouterConfigured: false,
       workersAiConfigured: false,
-      error: 'API health endpoint unreachable (local dev without Pages Functions?).',
+      error:
+        'API health endpoint unreachable (Pages Functions not available in this environment).',
     };
     cachedHealth = { at: Date.now(), status };
     return status;
   }
+}
+
+export function clearAiHealthCache(): void {
+  cachedHealth = null;
 }

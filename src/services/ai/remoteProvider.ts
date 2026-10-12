@@ -96,6 +96,8 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
         explanation: data.explanation,
         alternatives: data.alternatives,
         provider: data.provider || this.name,
+        model: data.model,
+        usedFallback: (data as { usedFallback?: boolean }).usedFallback,
       };
     } catch (err) {
       return {
