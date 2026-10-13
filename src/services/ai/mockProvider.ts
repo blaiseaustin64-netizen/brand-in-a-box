@@ -16,13 +16,16 @@ import type {
   BrandVoice,
 } from '../../types/brand';
 import {
-  buildFullIdentity,
   buildColorSystem,
   buildTypography,
   buildVisualDirectionDetail,
   buildLogoSystem,
   ensureIdentity,
 } from '../identity/generateIdentity';
+import {
+  refineVisualIdentity,
+  explainVisualIdentity,
+} from '../identity/refineIdentity';
 import { createAssetFromTemplate } from '../assets/templateGenerator';
 import type { AssetGenerateRequest, AssetGenerateResponse } from '../../types/brand';
 
@@ -415,7 +418,24 @@ export class MockAIProvider implements AIProvider {
         case 'make_professional':
         case 'make_premium':
         case 'make_futuristic':
-        case 'make_playful':
+        case 'make_playful': {
+          if (!request.brand) {
+            return {
+              success: false,
+              error: 'Brand profile is required.',
+              provider: this.name,
+            };
+          }
+          // Update visual identity (colors/type/direction/logos) — not strategy-only text
+          const refined = refineVisualIdentity(request.brand, request.action);
+          return {
+            success: true,
+            profile: refined.profile,
+            explanation: refined.summary,
+            provider: 'procedural-identity',
+          };
+        }
+
         case 'improve_brand':
         case 'rewrite': {
           if (!request.brand) {
@@ -468,7 +488,15 @@ export class MockAIProvider implements AIProvider {
             };
           }
           const p = request.brand;
-          const explanation = `This brand was shaped around a ${joinPersonality(p.personality).toLowerCase()} personality and a ${p.visualDirection.toLowerCase()} visual direction. Positioning, mission, and voice all reinforce the same core idea so the brand stays coherent as it grows. Approved sections are preserved so intentional decisions are not overwritten.`;
+          const identityPart = p.visualIdentity?.colors?.palette?.length
+            ? explainVisualIdentity(p)
+            : '';
+          const explanation = [
+            `This brand was shaped around a ${joinPersonality(p.personality).toLowerCase()} personality and a ${p.visualDirection.toLowerCase()} visual direction.`,
+            'Positioning, mission, and voice reinforce the same core idea so the brand stays coherent.',
+            identityPart,
+            'Approved sections are preserved on future regenerations.',
+          ].filter(Boolean).join(' ');
           return {
             success: true,
             profile: p,
@@ -482,13 +510,13 @@ export class MockAIProvider implements AIProvider {
           if (!request.brand) {
             return { success: false, error: 'Brand profile is required.', provider: this.name };
           }
-          const profile: BrandProfile = {
-            ...request.brand,
-            visualIdentity: buildFullIdentity(request.brand),
-            status: 'identity_ready',
-            updatedAt: now(),
+          const { profile, summary } = refineVisualIdentity(request.brand, 'generate_identity');
+          return {
+            success: true,
+            profile,
+            explanation: summary,
+            provider: 'procedural-identity',
           };
-          return { success: true, profile, provider: this.name };
         }
 
         case 'generate_logo_concepts': {
@@ -602,40 +630,13 @@ export class MockAIProvider implements AIProvider {
           if (!request.brand) {
             return { success: false, error: 'Brand profile is required.', provider: this.name };
           }
-          let base = ensureIdentity(request.brand);
-          const action = request.action;
-          if (action === 'make_typography_stronger') {
-            if (!base.approvedSections.typography && !base.visualIdentity?.typography?.approved) {
-              base = {
-                ...base,
-                visualIdentity: {
-                  ...base.visualIdentity!,
-                  typography: buildTypography(base, true),
-                },
-                updatedAt: now(),
-              };
-            }
-          } else if (!base.approvedSections.colors && !base.visualIdentity?.colors?.approved) {
-            const colors = buildColorSystem(base, {
-              premium: action === 'make_minimal',
-              lessSat: action === 'make_minimal' || action === 'reduce_saturation',
-              moreContrast: action === 'increase_contrast',
-              darker: action === 'make_darker',
-              lighter: action === 'make_lighter',
-            });
-            colors.version = (base.visualIdentity?.colors?.version || 0) + 1;
-            // regenerate logo SVG to match new palette
-            const logo = buildLogoSystem(base, colors);
-            if (base.visualIdentity?.logo?.approvedConceptId) {
-              logo.approvedConceptId = base.visualIdentity.logo.approvedConceptId;
-            }
-            base = {
-              ...base,
-              visualIdentity: { ...base.visualIdentity!, colors, logo },
-              updatedAt: now(),
-            };
-          }
-          return { success: true, profile: base, provider: this.name };
+          const refined = refineVisualIdentity(request.brand, request.action);
+          return {
+            success: true,
+            profile: refined.profile,
+            explanation: refined.summary,
+            provider: 'procedural-identity',
+          };
         }
 
 

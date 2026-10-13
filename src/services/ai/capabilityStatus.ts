@@ -11,6 +11,11 @@ export const PROCEDURAL_IDENTITY_ACTIONS = new Set([
   'generate_colors',
   'generate_typography',
   'generate_visual_direction',
+  // Visual-direction refinements (must update visualIdentity, not only strategy text)
+  'make_premium',
+  'make_futuristic',
+  'make_playful',
+  'make_professional',
   'make_minimal',
   'increase_contrast',
   'make_darker',

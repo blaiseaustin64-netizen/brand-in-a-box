@@ -63,6 +63,14 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
+/** Stable hue offset from brand name + industry for less generic palettes */
+function brandHueOffset(brandName: string, industry: string): number {
+  const s = `${brandName}|${industry}`.toLowerCase();
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 40; // 0–39 degree nudge
+}
+
 function hslToHex(h: number, s: number, l: number): string {
   h = ((h % 360) + 360) % 360;
   s = clamp(s, 0, 100) / 100;
@@ -123,6 +131,7 @@ export function buildColorSystem(
 ): ColorSystem {
   const bias = paletteBias(brand.personality, brand.visualDirection);
   let { hue, sat, light } = bias;
+  hue = (hue + brandHueOffset(brand.brandName || '', brand.industry || '')) % 360;
   if (opts?.premium) {
     sat = Math.max(20, sat - 15);
     light = clamp(light - 5, 35, 60);
