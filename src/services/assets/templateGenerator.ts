@@ -217,7 +217,13 @@ export function generateTemplateSvg(
 export function createAssetFromTemplate(
   ctx: AssetGenerationContext,
   preset: AssetPreset,
-  opts?: { instruction?: string; refine?: string; existing?: BrandAsset }
+  opts?: {
+    instruction?: string;
+    refine?: string;
+    existing?: BrandAsset;
+    /** Override version notes (e.g. model failure fallback vs template-first preset) */
+    notes?: string;
+  }
 ): BrandAsset {
   const now = new Date().toISOString();
   const svg = generateTemplateSvg(ctx, preset, {
@@ -237,7 +243,9 @@ export function createAssetFromTemplate(
     width: preset.width,
     height: preset.height,
     status: 'generated',
-    notes: 'Branded template from Brand Profile + Visual Identity. Raster image generation is not configured.',
+    notes:
+      opts?.notes ||
+      'Branded SVG template from Brand Profile + Visual Identity (template-first asset — not a model-generated image).',
   };
 
   if (opts?.existing) {

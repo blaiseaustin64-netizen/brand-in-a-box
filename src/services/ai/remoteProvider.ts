@@ -122,6 +122,9 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
         instruction,
         refine: request.refineAction || instruction,
         existing: request.asset,
+        notes: !this.supportsImageGeneration
+          ? 'SVG template: image generation capability is off for this session.'
+          : 'Branded SVG template (this preset is template-first, not raster AI).',
       });
       asset.generationContextSummary = summarizeContext(context);
       return {
@@ -149,28 +152,33 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
         mimeType?: string;
         model?: string;
         configured?: boolean;
+        code?: string;
       };
 
       if (!res.ok || !data.success || !data.dataUri) {
-        // Fall back to template with clear note — not fake AI image success
+        // Binding missing vs model failure — never claim "not configured" when binding exists
+        const bindingMissing = data.configured === false || data.code === 'BINDING_MISSING';
+        const errDetail = (data.error || `HTTP ${res.status}`).slice(0, 280);
+        const notes = bindingMissing
+          ? 'SVG template fallback: Workers AI binding is not available on this deployment.'
+          : `SVG template fallback: raster generation failed. ${errDetail}`;
         const asset = createAssetFromTemplate(context, preset, {
-          instruction:
-            (instruction || '') +
-            ' [Image AI unavailable — template fallback]',
+          instruction: instruction || '',
           existing: request.asset,
+          notes,
         });
         asset.generationContextSummary =
-          summarizeContext(context) +
-          ` | Image AI failed: ${data.error || res.status}`;
+          summarizeContext(context) + ` | Raster failed: ${errDetail}`;
+        asset.source = 'template';
         return {
           success: true,
           asset,
           version: asset.versions[asset.versions.length - 1],
           provider: this.name,
           usedTemplate: true,
-          error: data.error
-            ? `Image generation failed (${data.error}). Delivered SVG template fallback.`
-            : 'Image generation failed. Delivered SVG template fallback.',
+          error: bindingMissing
+            ? `Workers AI not available. Showing SVG template (not an AI image).`
+            : `Raster generation failed: ${errDetail}. Showing SVG template fallback (not an AI image).`,
         };
       }
 
@@ -236,9 +244,11 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
         usedTemplate: false,
       };
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'network error';
       const asset = createAssetFromTemplate(context, preset, {
         instruction,
         existing: request.asset,
+        notes: `SVG template fallback: network error calling image API (${msg.slice(0, 160)}). Not an AI-generated image.`,
       });
       return {
         success: true,
@@ -246,10 +256,7 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
         version: asset.versions[asset.versions.length - 1],
         provider: this.name,
         usedTemplate: true,
-        error:
-          err instanceof Error
-            ? `Image network error (${err.message}). SVG template fallback used.`
-            : 'Image network error. SVG template fallback used.',
+        error: `Image network error (${msg}). Showing SVG template fallback (not an AI image).`,
       };
     }
   }
