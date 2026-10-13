@@ -93,3 +93,12 @@ npm run lint
 - **`public/_routes.json`** limits the Worker to `/api/*` so static assets are served without invoking Functions.
 - **`wrangler.toml`** sets `compatibility_date`, `pages_build_output_dir = "dist"`, and Workers AI binding `[ai] binding = "AI"`.
 - Secret `OPENROUTER_API_KEY` stays in the Pages dashboard (never in git).
+
+## Brand History & persistence
+
+Multi-brand local storage: `src/services/persistence/brandRepository.ts`.
+Legacy key migrates automatically. Browser/device only — not cloud accounts.
+
+## Future backend
+
+Swap brandRepository for authenticated APIs. Secrets stay server-side.

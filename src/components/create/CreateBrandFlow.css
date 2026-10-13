@@ -266,3 +266,16 @@
     padding: 18px;
   }
 }
+
+.create-flow__history-link {
+  margin: 0.5rem 0 1rem;
+}
+.create-flow__link-btn {
+  background: none;
+  border: none;
+  color: #62e6ff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  padding: 0;
+}

@@ -1,0 +1,110 @@
+.brand-history {
+  max-width: 720px;
+  padding: 1.5rem 1.25rem 3rem;
+}
+.brand-history__header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f2f4f7;
+}
+.brand-history__header p {
+  margin: 0 0 1.5rem;
+  color: #9aa5b1;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.brand-history__empty {
+  padding: 2rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: #111318;
+  text-align: center;
+  color: #9aa5b1;
+}
+.brand-history__primary {
+  margin-top: 1rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #62e6ff;
+  color: #08090b;
+  font-weight: 600;
+  cursor: pointer;
+}
+.brand-history__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.brand-history__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #111318;
+}
+.brand-history__item--active {
+  border-color: rgba(98, 230, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(98, 230, 255, 0.12);
+}
+.brand-history__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.brand-history__name {
+  font-weight: 600;
+  color: #f2f4f7;
+}
+.brand-history__badge {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(98, 230, 255, 0.15);
+  color: #62e6ff;
+}
+.brand-history__sub,
+.brand-history__dates {
+  display: block;
+  font-size: 0.8rem;
+  color: #9aa5b1;
+  margin-top: 0.2rem;
+}
+.brand-history__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.brand-history__open,
+.brand-history__delete {
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #161a21;
+  color: #f2f4f7;
+}
+.brand-history__open:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.brand-history__delete {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.25);
+}
+@media (max-width: 640px) {
+  .brand-history__item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

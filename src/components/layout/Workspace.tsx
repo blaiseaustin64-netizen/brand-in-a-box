@@ -11,6 +11,7 @@ import { TypographyStudio } from '../identity/TypographyStudio';
 import { AssetStudio } from '../assets/AssetStudio';
 import { ExportCenter } from '../export/ExportCenter';
 import { BrandGuidelines } from '../guidelines/BrandGuidelines';
+import { BrandHistory } from '../history/BrandHistory';
 import './Workspace.css';
 
 export function Workspace() {
@@ -23,6 +24,13 @@ export function Workspace() {
   } = useBrand();
 
   if (!brand) {
+    if (view === 'history') {
+      return (
+        <div className="workspace workspace--create">
+          <BrandHistory />
+        </div>
+      );
+    }
     return (
       <div className="workspace workspace--create">
         <CreateBrandFlow />
@@ -56,6 +64,7 @@ export function Workspace() {
             {view === 'assets' && 'Asset Studio'}
             {view === 'export' && 'Export & Forge'}
             {view === 'guidelines' && 'Brand Guidelines'}
+            {view === 'history' && 'Brand History'}
           </div>
           <button
             type="button"
@@ -78,6 +87,7 @@ export function Workspace() {
           {view === 'assets' && <AssetStudio />}
           {view === 'export' && <ExportCenter />}
           {view === 'guidelines' && <BrandGuidelines />}
+          {view === 'history' && <BrandHistory />}
         </main>
       </div>
 

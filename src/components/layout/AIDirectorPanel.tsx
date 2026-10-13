@@ -1,15 +1,6 @@
-import { useEffect, useState } from 'react';
 import { useBrand } from '../../store/BrandContext';
 import type { BrandDirectorAction } from '../../types/brand';
 import './AIDirectorPanel.css';
-import { fetchAiHealth, type AiHealthStatus } from '../../services/ai';
-import {
-  formatTextConfiguredLine,
-  formatTextLastLine,
-  formatIdentityLine,
-  formatImageConfiguredLine,
-  formatImageLastLine,
-} from '../../services/ai/capabilityStatus';
 
 const QUICK_ACTIONS: { action: BrandDirectorAction; label: string }[] = [
   { action: 'make_premium', label: 'More premium' },
@@ -23,10 +14,6 @@ const QUICK_ACTIONS: { action: BrandDirectorAction; label: string }[] = [
 ];
 
 export function AIDirectorPanel() {
-  const [aiStatus, setAiStatus] = useState<AiHealthStatus | null>(null);
-  useEffect(() => {
-    void fetchAiHealth(true).then(setAiStatus);
-  }, []);
   const {
     brand,
     isGenerating,
@@ -36,22 +23,9 @@ export function AIDirectorPanel() {
     runAction,
     mobileDirectorOpen,
     toggleMobileDirector,
-    capabilitySnapshot,
   } = useBrand();
 
   if (!brand) return null;
-
-  const textConfigured = formatTextConfiguredLine({
-    configured: Boolean(aiStatus?.openRouterConfigured),
-    model: aiStatus?.openRouterModel,
-  });
-  const textLast = formatTextLastLine(capabilitySnapshot);
-  const identityLine = formatIdentityLine(capabilitySnapshot);
-  const imageConfigured = formatImageConfiguredLine({
-    configured: Boolean(aiStatus?.workersAiConfigured),
-    model: aiStatus?.imageModel,
-  });
-  const imageLast = formatImageLastLine(capabilitySnapshot);
 
   return (
     <>
@@ -71,22 +45,9 @@ export function AIDirectorPanel() {
             <div className="director__pulse" data-active={isGenerating} />
             <h2 className="director__title">AI Brand Director</h2>
           </div>
-          <p className="director__subtitle">Context-aware brand refinements</p>
-          <div className="director__capabilities" role="status">
-            <p className="director__cap-line">{textConfigured}</p>
-            {textLast && (
-              <p className="director__cap-line director__cap-line--last">
-                {textLast}
-              </p>
-            )}
-            <p className="director__cap-line">{identityLine}</p>
-            <p className="director__cap-line">{imageConfigured}</p>
-            {imageLast && (
-              <p className="director__cap-line director__cap-line--last">
-                {imageLast}
-              </p>
-            )}
-          </div>
+          <p className="director__subtitle">
+            Refine strategy, voice, and visual identity with context-aware actions.
+          </p>
         </header>
 
         <div className="director__body">

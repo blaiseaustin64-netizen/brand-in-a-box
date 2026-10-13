@@ -28,7 +28,7 @@ const VISUALS: VisualDirection[] = [
 ];
 
 export function CreateBrandFlow() {
-  const { createBrand, isGenerating, error, clearError } = useBrand();
+  const { createBrand, isGenerating, error, clearError, setView, listBrandHistory } = useBrand();
 
   const [brandName, setBrandName] = useState('');
   const [description, setDescription] = useState('');
@@ -87,6 +87,13 @@ export function CreateBrandFlow() {
           <div>
             <p className="create__eyebrow">VEXDYN · Brand-in-a-Box</p>
             <h1 className="create__title">Turn an idea into a brand</h1>
+      {listBrandHistory().length > 0 && (
+        <p className="create-flow__history-link">
+          <button type="button" className="create-flow__link-btn" onClick={() => setView('history')}>
+            Open brand history ({listBrandHistory().length})
+          </button>
+        </p>
+      )}
             <p className="create__lead">
               Give the AI Brand Director the essentials. Strategy, voice, and
               identity will be built from your context — not random templates.

@@ -16,10 +16,11 @@ const NAV: NavItem[] = [
   { id: 'typography', label: 'Typography', available: true },
   { id: 'assets', label: 'Assets', available: true },
   { id: 'export', label: 'Export', available: true },
+  { id: 'guidelines', label: 'Guidelines', available: true },
+  { id: 'history', label: 'History', available: true },
   { id: 'social', label: 'Social Kit', available: false },
   { id: 'business', label: 'Business Kit', available: false },
   { id: 'website', label: 'Website', available: false },
-  { id: 'guidelines', label: 'Guidelines', available: true },
 ];
 
 export function Sidebar() {
@@ -61,7 +62,11 @@ export function Sidebar() {
               } ${!item.available ? 'sidebar__item--disabled' : ''}`}
               onClick={() => item.available && setView(item.id)}
               disabled={!item.available}
-              title={item.available ? item.label : 'Coming in a later phase'}
+              title={
+                item.available
+                  ? item.label
+                  : 'Coming soon — dedicated kit packages in a later release'
+              }
             >
               <span className="sidebar__item-label">{item.label}</span>
               {!item.available && (
@@ -78,7 +83,7 @@ export function Sidebar() {
             onClick={() => {
               if (
                 window.confirm(
-                  'Start a new brand? Current brand will be cleared from this device.'
+                  'Start a new brand? Your current work stays in History on this device.'
                 )
               ) {
                 resetBrand();

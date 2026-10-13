@@ -39,7 +39,8 @@ type ViewId =
   | 'business'
   | 'website'
   | 'export'
-  | 'guidelines';
+  | 'guidelines'
+  | 'history';
 
 interface BrandState {
   brand: BrandProfile | null;
@@ -148,6 +149,9 @@ interface BrandContextValue extends BrandState {
   deleteAsset: (assetId: string) => void;
   downloadAsset: (assetId: string, versionId?: string) => void;
   clearAssetError: () => void;
+  listBrandHistory: () => import('../services/persistence/brandRepository').BrandListItem[];
+  openBrandFromHistory: (id: string) => void;
+  deleteBrandFromHistory: (id: string) => void;
 }
 
 const BrandContext = createContext<BrandContextValue | null>(null);
@@ -735,6 +739,39 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_ASSET_ERROR', payload: null });
   }, []);
 
+  const listBrandHistory = useCallback(() => brandService.listBrandHistory(), []);
+
+  const openBrandFromHistory = useCallback((id: string) => {
+    const profile = brandService.openBrandFromHistory(id);
+    if (!profile) {
+      dispatch({ type: 'SET_ERROR', payload: 'Could not open that brand record.' });
+      return;
+    }
+    dispatch({ type: 'SET_BRAND', payload: profile });
+    dispatch({ type: 'SET_ASSETS', payload: assetService.loadAssets(profile.id) });
+    dispatch({ type: 'SET_VIEW', payload: 'overview' });
+    dispatch({
+      type: 'SET_DIRECTOR_MESSAGE',
+      payload: `Opened ${profile.brandName}. Continue where you left off.`,
+    });
+  }, []);
+
+  const deleteBrandFromHistory = useCallback((id: string) => {
+    const activeId = state.brand?.id;
+    brandService.deleteBrandFromHistory(id);
+    if (activeId === id) {
+      const next = brandService.loadBrand();
+      if (next) {
+        dispatch({ type: 'SET_BRAND', payload: next });
+        dispatch({ type: 'SET_ASSETS', payload: assetService.loadAssets(next.id) });
+      } else {
+        dispatch({ type: 'SET_BRAND', payload: null });
+        dispatch({ type: 'SET_ASSETS', payload: [] });
+        dispatch({ type: 'SET_VIEW', payload: 'create' });
+      }
+    }
+  }, [state.brand?.id]);
+
   const value: BrandContextValue = {
     ...state,
     setView,
@@ -757,6 +794,9 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     deleteAsset,
     downloadAsset,
     clearAssetError,
+    listBrandHistory,
+    openBrandFromHistory,
+    deleteBrandFromHistory,
   };
 
   return (

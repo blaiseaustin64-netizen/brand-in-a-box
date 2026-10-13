@@ -4,6 +4,7 @@
  */
 
 import { getAIProvider } from './ai';
+import * as brandRepo from './persistence/brandRepository';
 import type {
   BrandProfile,
   BrandInput,
@@ -11,8 +12,6 @@ import type {
   BrandDirectorAction,
   AIGenerateResponse,
 } from '../types/brand';
-
-const STORAGE_KEY = 'vexdyn_brand_in_a_box_profile';
 
 function pushHistory(brand: BrandProfile, label: string): BrandProfile {
   const { history, ...rest } = brand;
@@ -29,29 +28,30 @@ function pushHistory(brand: BrandProfile, label: string): BrandProfile {
 }
 
 export function loadBrand(): BrandProfile | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as BrandProfile;
-  } catch {
-    return null;
-  }
+  return brandRepo.loadActiveBrand();
 }
 
 export function saveBrand(profile: BrandProfile): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-  } catch {
-    // Storage full or unavailable — non-fatal
-  }
+  brandRepo.saveBrand(profile);
 }
 
 export function clearBrand(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+  // Do not destroy history — only clear active selection for "new brand" flow
+  brandRepo.clearActiveBrandOnly();
+}
+
+export function listBrandHistory() {
+  return brandRepo.listBrands();
+}
+
+export function openBrandFromHistory(id: string): BrandProfile | null {
+  const b = brandRepo.getBrand(id);
+  if (b) brandRepo.setActiveBrandId(id);
+  return b;
+}
+
+export function deleteBrandFromHistory(id: string): void {
+  brandRepo.deleteBrand(id);
 }
 
 export async function createBrand(input: BrandInput): Promise<AIGenerateResponse> {

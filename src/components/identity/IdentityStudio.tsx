@@ -4,7 +4,6 @@ import { LogoStudio } from './LogoStudio';
 import { ColorStudio } from './ColorStudio';
 import { TypographyStudio } from './TypographyStudio';
 import { VisualDirectionStudio } from './VisualDirectionStudio';
-import { BrandPreview } from './BrandPreview';
 import './IdentityStudio.css';
 
 type IdentityTab = 'overview' | 'logo' | 'colors' | 'typography' | 'direction' | 'preview';
@@ -15,7 +14,6 @@ const TABS: { id: IdentityTab; label: string }[] = [
   { id: 'colors', label: 'Colors' },
   { id: 'typography', label: 'Typography' },
   { id: 'direction', label: 'Direction' },
-  { id: 'preview', label: 'Preview' },
 ];
 
 export function IdentityStudio() {
@@ -110,7 +108,6 @@ export function IdentityStudio() {
           {tab === 'colors' && <ColorStudio />}
           {tab === 'typography' && <TypographyStudio />}
           {tab === 'direction' && <VisualDirectionStudio />}
-          {tab === 'preview' && <BrandPreview />}
         </div>
       )}
     </div>
