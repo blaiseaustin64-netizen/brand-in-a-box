@@ -49,11 +49,13 @@ Without Functions, brand-text AI and Workers AI image calls return clear errors 
 | `OPENROUTER_MODEL` | Optional | Default `google/gemma-4-26b-a4b-it:free` |
 | `OPENROUTER_FALLBACK_MODEL` | Optional | Default `openrouter/free` |
 
-**Bindings:**
+**Bindings (via `wrangler.toml`):**
 
 | Binding | Type | Purpose |
 |---------|------|---------|
-| `AI` | Workers AI | Image generation |
+| `AI` | Workers AI | Image generation (`env.AI` in Pages Functions) |
+
+Because the Pages project manages bindings through Wrangler, the `[ai]` table in `wrangler.toml` is required. Dashboard-only AI bindings are ignored when Wrangler manages bindings.
 
 Never put `OPENROUTER_API_KEY` in `VITE_*` vars or frontend code.
 
@@ -89,5 +91,5 @@ npm run lint
 
 - **No SPA catch-all redirect.** This app uses React view state, not URL routes. A `/* → /index.html 200` rule caused Cloudflare infinite-loop warnings and can interfere with Functions.
 - **`public/_routes.json`** limits the Worker to `/api/*` so static assets are served without invoking Functions.
-- **`wrangler.toml`** sets `compatibility_date` and `pages_build_output_dir = "dist"`.
-- Secrets/bindings stay in the Pages dashboard: `OPENROUTER_API_KEY`, Workers AI binding `AI`.
+- **`wrangler.toml`** sets `compatibility_date`, `pages_build_output_dir = "dist"`, and Workers AI binding `[ai] binding = "AI"`.
+- Secret `OPENROUTER_API_KEY` stays in the Pages dashboard (never in git).

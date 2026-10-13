@@ -1,5 +1,10 @@
 # Cloudflare Pages project configuration
-# Bindings (AI) and secrets (OPENROUTER_API_KEY) are set in the Pages dashboard.
+# Secrets (OPENROUTER_API_KEY) remain in the Pages dashboard — never commit keys here.
 name = "brand-in-a-box"
 compatibility_date = "2024-11-01"
 pages_build_output_dir = "dist"
+
+# Workers AI binding — available in Pages Functions as env.AI
+# Required for POST /api/generate-image and workersAiConfigured on /api/health
+[ai]
+binding = "AI"
