@@ -110,13 +110,6 @@ export function BrandOverview() {
         <button
           type="button"
           className="overview__cta overview__cta--ghost"
-          onClick={() => setView('identity')}
-        >
-          Visual identity
-        </button>
-        <button
-          type="button"
-          className="overview__cta overview__cta--ghost"
           onClick={() => setView('export')}
         >
           Export
