@@ -119,20 +119,158 @@ async function callFlux(
   }
 }
 
+/**
+ * Strip base64 images, large SVG, assets, and history for OpenRouter text calls.
+ * Palette/typography/direction only need strategy + compact identity metadata.
+ */
+export function compactBrandForTextAi(brand: BrandProfile): Record<string, unknown> {
+  const colors = brand.visualIdentity?.colors;
+  const type = brand.visualIdentity?.typography;
+  const logo = brand.visualIdentity?.logo;
+  const compactPalette =
+    colors?.palette?.map((c) => ({
+      role: c.role,
+      name: c.name,
+      hex: c.hex,
+      usage: c.usage,
+    })) || undefined;
+
+  const logoMeta =
+    logo?.concepts?.map((c) => ({
+      id: c.id,
+      label: c.label,
+      role: c.role,
+      source: c.source || (c.imageUrl ? 'flux_raster' : 'procedural_svg'),
+      // intentionally omit imageUrl, svgMarkup, generationPrompt
+    })) || undefined;
+
+  return {
+    brandName: brand.brandName,
+    tagline: brand.tagline,
+    industry: brand.industry,
+    description: brand.description,
+    targetAudience: brand.targetAudience,
+    personality: brand.personality,
+    visualDirection: brand.visualDirection,
+    keywords: brand.keywords,
+    strategy: brand.strategy
+      ? {
+          positioning: brand.strategy.positioning,
+          mission: brand.strategy.mission,
+          vision: brand.strategy.vision,
+          // omit long brandStory if huge — keep short summary fields
+          brandStory:
+            typeof brand.strategy.brandStory === 'string'
+              ? brand.strategy.brandStory.slice(0, 600)
+              : brand.strategy.brandStory,
+          targetAudienceDetail:
+            typeof brand.strategy.targetAudienceDetail === 'string'
+              ? brand.strategy.targetAudienceDetail.slice(0, 400)
+              : brand.strategy.targetAudienceDetail,
+          personalityDetail:
+            typeof brand.strategy.personalityDetail === 'string'
+              ? brand.strategy.personalityDetail.slice(0, 400)
+              : brand.strategy.personalityDetail,
+          coreValues: brand.strategy.coreValues,
+          messagingPrinciples: brand.strategy.messagingPrinciples,
+        }
+      : undefined,
+    voice: brand.voice
+      ? {
+          tone: brand.voice.tone,
+          writingStyle: brand.voice.writingStyle,
+          wordsToUse: brand.voice.wordsToUse,
+          wordsToAvoid: brand.voice.wordsToAvoid,
+        }
+      : undefined,
+    visualIdentity: brand.visualIdentity
+      ? {
+          colors: compactPalette
+            ? {
+                palette: compactPalette,
+                approved: colors?.approved,
+                version: colors?.version,
+                notes: colors?.notes,
+              }
+            : undefined,
+          typography: type
+            ? {
+                displayFont: type.displayFont,
+                headingFont: type.headingFont,
+                bodyFont: type.bodyFont,
+                uiFont: type.uiFont,
+                approved: type.approved,
+                notes: type.notes,
+              }
+            : undefined,
+          visualDirectionDetail: brand.visualIdentity.visualDirectionDetail
+            ? {
+                ...brand.visualIdentity.visualDirectionDetail,
+                // keep text fields only
+              }
+            : undefined,
+          logo: logoMeta
+            ? {
+                concepts: logoMeta,
+                selectedConceptId: logo?.selectedConceptId,
+                approvedConceptId: logo?.approvedConceptId,
+                generationNote: logo?.generationNote,
+              }
+            : undefined,
+        }
+      : undefined,
+    // never send assets / history / full localStorage blob
+  };
+}
+
+export function measureUtf8Bytes(value: unknown): number {
+  return new TextEncoder().encode(
+    typeof value === 'string' ? value : JSON.stringify(value)
+  ).length;
+}
+
+const MAX_BRAND_AI_BODY_BYTES = 100_000; // under server 120_000 limit with margin
+
 async function callBrandAiJson(
   action: string,
   brand: BrandProfile,
   instruction: string
 ): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: string }> {
   try {
+    const compactBrand = compactBrandForTextAi(brand);
+    // Keep instruction focused; avoid re-embedding full brand if context already in brand snapshot
+    const trimmedInstruction =
+      instruction.length > 12_000
+        ? instruction.slice(0, 12_000) + '\n…[instruction truncated]'
+        : instruction;
+
+    const payload = {
+      action,
+      brand: compactBrand,
+      instruction: trimmedInstruction,
+    };
+    const body = JSON.stringify(payload);
+    const bodyBytes = measureUtf8Bytes(body);
+
+    if (bodyBytes > MAX_BRAND_AI_BODY_BYTES) {
+      // Diagnostic without logging secrets or base64
+      const fieldSizes = {
+        action: measureUtf8Bytes(action),
+        instruction: measureUtf8Bytes(trimmedInstruction),
+        brand: measureUtf8Bytes(compactBrand),
+        total: bodyBytes,
+      };
+      console.warn('[brand-ai] compact payload still large', fieldSizes);
+      return {
+        ok: false,
+        error: `Structured identity request still too large after compaction (${bodyBytes} bytes). Try regenerating without prior logo images in state.`,
+      };
+    }
+
     const res = await fetch(AI_ENDPOINTS.brandAi, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        brand,
-        instruction,
-      }),
+      body,
     });
     const data = (await res.json()) as {
       success?: boolean;
@@ -144,7 +282,6 @@ async function callBrandAiJson(
     if (!res.ok || !data.success) {
       return { ok: false, error: data.error || `Brand AI failed (${res.status})` };
     }
-    // Prefer dedicated identityPayload if server adds it; else try profile extensions
     if (data.identityPayload && typeof data.identityPayload === 'object') {
       return { ok: true, data: data.identityPayload };
     }

@@ -22,6 +22,7 @@ import {
   generateAiTypography,
   generateAiVisualDirection,
   generateFullAiIdentity,
+  compactBrandForTextAi,
 } from '../identity/aiIdentityService';
 import { createAssetFromTemplate } from '../assets/templateGenerator';
 import { summarizeContext } from '../assets/contextBuilder';
@@ -65,7 +66,10 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
         body: JSON.stringify({
           action: request.action,
           input: request.input,
-          brand: request.brand,
+          // Never send Flux base64 / large SVG to OpenRouter text endpoint
+          brand: request.brand
+            ? compactBrandForTextAi(request.brand)
+            : undefined,
           section: request.section,
           instruction: request.instruction,
           alternativesCount: request.alternativesCount,
