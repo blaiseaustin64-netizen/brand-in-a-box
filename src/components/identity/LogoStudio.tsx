@@ -60,6 +60,12 @@ export function LogoStudio() {
             <div className="logo-studio__state logo-studio__state--fail">
               Generation failed
             </div>
+          ) : selected?.imageUrl ? (
+            <img
+              className="logo-studio__raster"
+              src={selected.imageUrl}
+              alt={selected.label}
+            />
           ) : selected?.svgMarkup ? (
             <div
               className="logo-studio__svg"
@@ -121,12 +127,20 @@ export function LogoStudio() {
               onClick={() => selectLogoConcept(c.id)}
             >
               <div className="logo-studio__concept-preview">
-                {c.svgMarkup ? (
+                {c.imageUrl ? (
+                  <img src={c.imageUrl} alt="" />
+                ) : c.svgMarkup ? (
                   <div dangerouslySetInnerHTML={{ __html: c.svgMarkup }} />
                 ) : (
                   <span className="logo-studio__concept-empty">{c.status}</span>
                 )}
               </div>
+              {c.source === 'flux_raster' && (
+                <span className="logo-studio__source-tag">Flux raster</span>
+              )}
+              {c.source === 'procedural_svg' && (
+                <span className="logo-studio__source-tag logo-studio__source-tag--svg">SVG</span>
+              )}
               <div className="logo-studio__concept-meta">
                 <span className="logo-studio__concept-label">{c.label}</span>
                 <span className="logo-studio__concept-role">{c.role}</span>

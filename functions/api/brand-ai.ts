@@ -64,6 +64,94 @@ export const onRequestPost: AppPagesFunction<Env> = async (context) => {
       env.OPENROUTER_FALLBACK_MODEL.trim()) ||
     FALLBACK_OPENROUTER_MODEL;
 
+  // Identity structure proposals — free-form JSON schema in instruction
+  if (
+    req.action === 'propose_palette' ||
+    req.action === 'propose_typography' ||
+    req.action === 'propose_visual_direction'
+  ) {
+    try {
+      const system = `You are a brand design system assistant for VEXDYN Brand-in-a-Box.
+Return ONLY valid JSON matching the schema in the user message. No markdown fences.`;
+      const user = `${req.instruction || req.action}\n\nBrand snapshot:\n${JSON.stringify(
+        {
+          brandName: (req.brand as Record<string, unknown> | undefined)?.brandName,
+          industry: (req.brand as Record<string, unknown> | undefined)?.industry,
+          description: (req.brand as Record<string, unknown> | undefined)?.description,
+          personality: (req.brand as Record<string, unknown> | undefined)?.personality,
+          visualDirection: (req.brand as Record<string, unknown> | undefined)?.visualDirection,
+          tagline: (req.brand as Record<string, unknown> | undefined)?.tagline,
+          strategy: (req.brand as Record<string, unknown> | undefined)?.strategy,
+          voice: (req.brand as Record<string, unknown> | undefined)?.voice,
+        },
+        null,
+        2
+      )}`;
+      const model =
+        (typeof env.OPENROUTER_MODEL === 'string' && env.OPENROUTER_MODEL.trim()) ||
+        DEFAULT_OPENROUTER_MODEL;
+      const result = await callOpenRouter(
+        env.OPENROUTER_API_KEY,
+        model,
+        [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+        { preferJsonObject: true }
+      );
+      if (!result.ok) {
+        return json(
+          {
+            success: false,
+            error: result.error,
+            provider: 'openrouter',
+            model,
+          },
+          502
+        );
+      }
+      let payload: Record<string, unknown>;
+      try {
+        let raw = result.content.trim();
+        if (raw.startsWith('```')) {
+          raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+        }
+        const start = raw.indexOf('{');
+        const end = raw.lastIndexOf('}');
+        if (start >= 0 && end > start) raw = raw.slice(start, end + 1);
+        payload = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        return json(
+          {
+            success: false,
+            error: 'Failed to parse identity proposal JSON.',
+            provider: 'openrouter',
+            model,
+            rawPreview: result.content.slice(0, 400),
+          },
+          502
+        );
+      }
+      return json({
+        success: true,
+        provider: 'openrouter',
+        model,
+        identityPayload: payload,
+        profile: req.brand || undefined,
+      });
+    } catch (err) {
+      return json(
+        {
+          success: false,
+          error:
+            err instanceof Error ? err.message : 'Identity proposal failed.',
+          provider: 'openrouter',
+        },
+        500
+      );
+    }
+  }
+
   try {
     const messages = buildMessages(req);
     let result = await callOpenRouter(env.OPENROUTER_API_KEY, model, messages, {

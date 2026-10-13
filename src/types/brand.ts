@@ -119,10 +119,14 @@ export interface LogoConcept {
   label: string;
   role: LogoRole;
   status: LogoAssetStatus;
-  /** Optional remote/generated image URL */
+  /** Optional remote/generated image URL or data URI */
   imageUrl?: string;
   /** SVG markup for procedural monogram / wordmark previews */
   svgMarkup?: string;
+  /** Honest source label — never claim flux_raster is editable SVG */
+  source?: 'procedural_svg' | 'flux_raster' | 'composed';
+  /** Prompt used for Flux generation (audit / regenerate) */
+  generationPrompt?: string;
   /** Short design rationale from the AI Director */
   rationale?: string;
   createdAt: string;

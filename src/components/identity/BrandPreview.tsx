@@ -62,12 +62,18 @@ export function BrandPreview() {
           className="brand-preview__card"
           style={{ background: surface, borderColor: border }}
         >
-          {selected?.svgMarkup && (
+          {selected?.imageUrl ? (
+            <img
+              className="brand-preview__logo-img"
+              src={selected.imageUrl}
+              alt={brand?.brandName || 'Logo'}
+            />
+          ) : selected?.svgMarkup ? (
             <div
               className="brand-preview__logo"
               dangerouslySetInnerHTML={{ __html: selected.svgMarkup }}
             />
-          )}
+          ) : null}
           <p
             className="brand-preview__tagline"
             style={{

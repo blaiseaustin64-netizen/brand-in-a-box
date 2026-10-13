@@ -16,6 +16,13 @@ import type {
 } from '../../types/brand';
 import { AI_ENDPOINTS } from './config';
 import { MockAIProvider } from './mockProvider';
+import {
+  generateAiLogoSystem,
+  generateAiColorSystem,
+  generateAiTypography,
+  generateAiVisualDirection,
+  generateFullAiIdentity,
+} from '../identity/aiIdentityService';
 import { createAssetFromTemplate } from '../assets/templateGenerator';
 import { summarizeContext } from '../assets/contextBuilder';
 
@@ -268,13 +275,173 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
   private async handleIdentityLocally(
     request: AIGenerateRequest
   ): Promise<AIGenerateResponse> {
-    // Procedural SVG / rules — never report as OpenRouter or product-wide mock-dev
-    const response = await this.mock.generate(request);
-    return {
-      ...response,
-      provider: 'procedural-identity',
-      model: undefined,
-    };
+    if (!request.brand) {
+      return {
+        success: false,
+        error: 'Brand profile is required for identity generation.',
+        provider: 'procedural-identity',
+      };
+    }
+
+    const brand = request.brand;
+    const action = request.action;
+
+    try {
+      // --- AI-assisted paths (Flux + OpenRouter) with procedural fallback ---
+      if (action === 'generate_identity') {
+        const { visualIdentity, note } = await generateFullAiIdentity(brand);
+        const profile = {
+          ...brand,
+          visualIdentity,
+          status: 'identity_ready' as const,
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          success: true,
+          profile,
+          explanation: note,
+          provider: 'identity-ai-hybrid',
+        };
+      }
+
+      if (action === 'generate_logo_concepts') {
+        const { logo, note } = await generateAiLogoSystem(brand);
+        const vi = brand.visualIdentity || (await generateFullAiIdentity(brand)).visualIdentity;
+        const profile = {
+          ...brand,
+          visualIdentity: { ...vi, logo },
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          success: true,
+          profile,
+          explanation: note,
+          provider: 'identity-ai-hybrid',
+        };
+      }
+
+      if (action === 'generate_colors') {
+        if (brand.visualIdentity?.colors?.approved) {
+          return {
+            success: true,
+            profile: brand,
+            explanation: 'Colors are approved and were preserved.',
+            provider: 'procedural-identity',
+          };
+        }
+        const { colors, note } = await generateAiColorSystem(brand);
+        const vi = brand.visualIdentity;
+        const profile = {
+          ...brand,
+          visualIdentity: vi
+            ? { ...vi, colors }
+            : { ...(await generateFullAiIdentity(brand)).visualIdentity, colors },
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          success: true,
+          profile,
+          explanation: note,
+          provider: 'identity-ai-hybrid',
+        };
+      }
+
+      if (action === 'generate_typography') {
+        if (brand.visualIdentity?.typography?.approved) {
+          return {
+            success: true,
+            profile: brand,
+            explanation: 'Typography is approved and was preserved.',
+            provider: 'procedural-identity',
+          };
+        }
+        const { typography, note } = await generateAiTypography(brand);
+        const vi = brand.visualIdentity;
+        const profile = {
+          ...brand,
+          visualIdentity: vi
+            ? { ...vi, typography }
+            : { ...(await generateFullAiIdentity(brand)).visualIdentity, typography },
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          success: true,
+          profile,
+          explanation: note,
+          provider: 'identity-ai-hybrid',
+        };
+      }
+
+      if (action === 'generate_visual_direction') {
+        if (brand.visualIdentity?.visualDirectionDetail?.approved) {
+          return {
+            success: true,
+            profile: brand,
+            explanation: 'Visual direction is approved and was preserved.',
+            provider: 'procedural-identity',
+          };
+        }
+        const { detail, note } = await generateAiVisualDirection(brand, true);
+        const vi = brand.visualIdentity;
+        const profile = {
+          ...brand,
+          visualIdentity: vi
+            ? { ...vi, visualDirectionDetail: detail }
+            : {
+                ...(await generateFullAiIdentity(brand)).visualIdentity,
+                visualDirectionDetail: detail,
+              },
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          success: true,
+          profile,
+          explanation: note,
+          provider: 'identity-ai-hybrid',
+        };
+      }
+
+      // Refinements (premium/minimal/etc.) — procedural refine + optional logo flux refresh
+      const response = await this.mock.generate(request);
+      if (
+        response.success &&
+        response.profile &&
+        (action === 'make_premium' ||
+          action === 'make_futuristic' ||
+          action === 'make_playful' ||
+          action === 'make_minimal')
+      ) {
+        // Best-effort: refresh Flux symbols for new direction (non-blocking failures)
+        try {
+          const { logo, note } = await generateAiLogoSystem(response.profile);
+          response.profile = {
+            ...response.profile,
+            visualIdentity: {
+              ...response.profile.visualIdentity!,
+              logo,
+            },
+          };
+          response.explanation = `${response.explanation || ''} ${note}`.trim();
+        } catch {
+          /* keep procedural logos */
+        }
+      }
+      return {
+        ...response,
+        provider: response.provider === 'mock-dev' ? 'procedural-identity' : response.provider || 'procedural-identity',
+        model: undefined,
+      };
+    } catch (err) {
+      // Absolute fallback — pure procedural mock
+      const response = await this.mock.generate(request);
+      return {
+        ...response,
+        provider: 'procedural-identity',
+        explanation:
+          (response.explanation || '') +
+          (err instanceof Error ? ` (AI path error: ${err.message})` : ''),
+      };
+    }
   }
 }
 
