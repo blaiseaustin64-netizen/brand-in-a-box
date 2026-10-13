@@ -3,6 +3,13 @@ import { useBrand } from '../../store/BrandContext';
 import type { BrandDirectorAction } from '../../types/brand';
 import './AIDirectorPanel.css';
 import { fetchAiHealth, type AiHealthStatus } from '../../services/ai';
+import {
+  formatTextConfiguredLine,
+  formatTextLastLine,
+  formatIdentityLine,
+  formatImageConfiguredLine,
+  formatImageLastLine,
+} from '../../services/ai/capabilityStatus';
 
 const QUICK_ACTIONS: { action: BrandDirectorAction; label: string }[] = [
   { action: 'make_premium', label: 'More premium' },
@@ -29,10 +36,22 @@ export function AIDirectorPanel() {
     runAction,
     mobileDirectorOpen,
     toggleMobileDirector,
-    providerName,
+    capabilitySnapshot,
   } = useBrand();
 
   if (!brand) return null;
+
+  const textConfigured = formatTextConfiguredLine({
+    configured: Boolean(aiStatus?.openRouterConfigured),
+    model: aiStatus?.openRouterModel,
+  });
+  const textLast = formatTextLastLine(capabilitySnapshot);
+  const identityLine = formatIdentityLine(capabilitySnapshot);
+  const imageConfigured = formatImageConfiguredLine({
+    configured: Boolean(aiStatus?.workersAiConfigured),
+    model: aiStatus?.imageModel,
+  });
+  const imageLast = formatImageLastLine(capabilitySnapshot);
 
   return (
     <>
@@ -52,20 +71,22 @@ export function AIDirectorPanel() {
             <div className="director__pulse" data-active={isGenerating} />
             <h2 className="director__title">AI Brand Director</h2>
           </div>
-          <p className="director__subtitle">
-            Context-aware · Provider: {providerName}
-          </p>
-          {aiStatus && (
-            <p className="ai-director__status" role="status">
-              {aiStatus.openRouterConfigured
-                ? `Text AI: OpenRouter${aiStatus.openRouterModel ? ` · ${aiStatus.openRouterModel}` : ''}`
-                : 'Text AI: not configured'}
-              {' · '}
-              {aiStatus.workersAiConfigured
-                ? `Images: Workers AI${aiStatus.imageModel ? ` · ${aiStatus.imageModel}` : ''}`
-                : 'Images: unavailable (AI binding not detected)'}
-            </p>
-          )}
+          <p className="director__subtitle">Context-aware brand refinements</p>
+          <div className="director__capabilities" role="status">
+            <p className="director__cap-line">{textConfigured}</p>
+            {textLast && (
+              <p className="director__cap-line director__cap-line--last">
+                {textLast}
+              </p>
+            )}
+            <p className="director__cap-line">{identityLine}</p>
+            <p className="director__cap-line">{imageConfigured}</p>
+            {imageLast && (
+              <p className="director__cap-line director__cap-line--last">
+                {imageLast}
+              </p>
+            )}
+          </div>
         </header>
 
         <div className="director__body">
@@ -109,30 +130,6 @@ export function AIDirectorPanel() {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="director__context">
-            <p className="director__context-label">Active context</p>
-            <ul className="director__context-list">
-              <li>
-                <span>Personality</span>
-                <strong>{brand.personality.join(' · ')}</strong>
-              </li>
-              <li>
-                <span>Visual</span>
-                <strong>{brand.visualDirection}</strong>
-              </li>
-              <li>
-                <span>Industry</span>
-                <strong>{brand.industry || '—'}</strong>
-              </li>
-              <li>
-                <span>Approved</span>
-                <strong>
-                  {Object.keys(brand.approvedSections).length || 'None yet'}
-                </strong>
-              </li>
-            </ul>
           </div>
         </div>
       </aside>

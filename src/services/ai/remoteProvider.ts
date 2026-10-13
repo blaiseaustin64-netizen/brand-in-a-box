@@ -257,8 +257,13 @@ export class RemoteAIProvider implements AIProvider, AssetCapableProvider {
   private async handleIdentityLocally(
     request: AIGenerateRequest
   ): Promise<AIGenerateResponse> {
-    // Reuse mock provider identity path (procedural SVG / rules) — honest
-    return this.mock.generate(request);
+    // Procedural SVG / rules — never report as OpenRouter or product-wide mock-dev
+    const response = await this.mock.generate(request);
+    return {
+      ...response,
+      provider: 'procedural-identity',
+      model: undefined,
+    };
   }
 }
 

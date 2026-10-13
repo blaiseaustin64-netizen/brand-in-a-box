@@ -4,6 +4,7 @@ import {
   useReducer,
   useCallback,
   useEffect,
+  useRef,
   type ReactNode,
 } from 'react';
 import type {
@@ -16,6 +17,14 @@ import type {
 import * as brandService from '../services/brandService';
 import * as assetService from '../services/assets/assetService';
 import { getAIProvider } from '../services/ai';
+import {
+  initialCapabilitySnapshot,
+  applyTextResult,
+  applyIdentityResult,
+  applyImageResult,
+  isProceduralIdentityAction,
+  type CapabilitySnapshot,
+} from '../services/ai/capabilityStatus';
 
 type ViewId =
   | 'create'
@@ -38,7 +47,9 @@ interface BrandState {
   isGenerating: boolean;
   error: string | null;
   directorMessage: string | null;
+  /** @deprecated use capabilitySnapshot — kept for any residual reads */
   providerName: string;
+  capabilitySnapshot: CapabilitySnapshot;
   providerConfigured: boolean;
   mobileNavOpen: boolean;
   mobileDirectorOpen: boolean;
@@ -54,6 +65,7 @@ type Action =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_DIRECTOR_MESSAGE'; payload: string | null }
   | { type: 'SET_PROVIDER_NAME'; payload: string }
+  | { type: 'SET_CAPABILITY'; payload: CapabilitySnapshot }
   | { type: 'SET_MOBILE_NAV'; payload: boolean }
   | { type: 'SET_MOBILE_DIRECTOR'; payload: boolean }
   | { type: 'SET_ASSETS'; payload: BrandAsset[] }
@@ -66,7 +78,8 @@ const initialState: BrandState = {
   isGenerating: false,
   error: null,
   directorMessage: null,
-  providerName: 'openrouter+workers-ai',
+  providerName: 'split-capabilities',
+  capabilitySnapshot: initialCapabilitySnapshot(),
   providerConfigured: true,
   mobileNavOpen: false,
   mobileDirectorOpen: false,
@@ -93,6 +106,8 @@ function reducer(state: BrandState, action: Action): BrandState {
       return { ...state, directorMessage: action.payload };
     case 'SET_PROVIDER_NAME':
       return { ...state, providerName: action.payload };
+    case 'SET_CAPABILITY':
+      return { ...state, capabilitySnapshot: action.payload };
     case 'SET_MOBILE_NAV':
       return { ...state, mobileNavOpen: action.payload };
     case 'SET_MOBILE_DIRECTOR':
@@ -139,10 +154,11 @@ const BrandContext = createContext<BrandContextValue | null>(null);
 
 export function BrandProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const capabilityRef = useRef(state.capabilitySnapshot);
+  capabilityRef.current = state.capabilitySnapshot;
 
   useEffect(() => {
-    const provider = getAIProvider(); // warm provider resolution / health probe
-    dispatch({ type: 'SET_PROVIDER_NAME', payload: provider.name });
+    getAIProvider(); // warm provider resolution / health probe
     const saved = brandService.loadBrand();
     if (saved) {
       dispatch({ type: 'SET_BRAND', payload: saved });
@@ -186,16 +202,56 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           type: 'SET_ERROR',
           payload: response.error || 'Failed to create brand.',
         });
+        dispatch({
+          type: 'SET_CAPABILITY',
+          payload: applyTextResult(capabilityRef.current, {
+            success: false,
+            provider: response.provider,
+            model: response.model,
+          }),
+        });
         dispatch({ type: 'SET_DIRECTOR_MESSAGE', payload: null });
         return;
       }
 
       dispatch({ type: 'SET_BRAND', payload: response.profile });
-      if (response.provider) {
-        const label = response.model
-          ? `${response.provider} · ${response.model}`
-          : response.provider;
-        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      {
+        const actionName =
+          typeof (response as { action?: string }).action === 'string'
+            ? (response as { action?: string }).action
+            : undefined;
+        if (actionName && isProceduralIdentityAction(actionName)) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyIdentityResult(capabilityRef.current, true),
+          });
+        } else if (
+          response.provider === 'procedural-identity' ||
+          response.provider === 'mock-dev'
+        ) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyIdentityResult(capabilityRef.current, true),
+          });
+        } else if (response.success) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyTextResult(capabilityRef.current, {
+              success: true,
+              provider: response.provider,
+              model: response.model,
+            }),
+          });
+        } else {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyTextResult(capabilityRef.current, {
+              success: false,
+              provider: response.provider,
+              model: response.model,
+            }),
+          });
+        }
       }
       dispatch({ type: 'SET_ASSETS', payload: [] });
       dispatch({ type: 'SET_VIEW', payload: 'overview' });
@@ -238,11 +294,43 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           return;
         }
         dispatch({ type: 'SET_BRAND', payload: response.profile });
-      if (response.provider) {
-        const label = response.model
-          ? `${response.provider} · ${response.model}`
-          : response.provider;
-        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      {
+        const actionName =
+          typeof (response as { action?: string }).action === 'string'
+            ? (response as { action?: string }).action
+            : undefined;
+        if (actionName && isProceduralIdentityAction(actionName)) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyIdentityResult(capabilityRef.current, true),
+          });
+        } else if (
+          response.provider === 'procedural-identity' ||
+          response.provider === 'mock-dev'
+        ) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyIdentityResult(capabilityRef.current, true),
+          });
+        } else if (response.success) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyTextResult(capabilityRef.current, {
+              success: true,
+              provider: response.provider,
+              model: response.model,
+            }),
+          });
+        } else {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyTextResult(capabilityRef.current, {
+              success: false,
+              provider: response.provider,
+              model: response.model,
+            }),
+          });
+        }
       }
 
         dispatch({
@@ -286,11 +374,43 @@ export function BrandProvider({ children }: { children: ReactNode }) {
         }
         if (response.profile) {
           dispatch({ type: 'SET_BRAND', payload: response.profile });
-      if (response.provider) {
-        const label = response.model
-          ? `${response.provider} · ${response.model}`
-          : response.provider;
-        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
+      {
+        const actionName =
+          typeof (response as { action?: string }).action === 'string'
+            ? (response as { action?: string }).action
+            : undefined;
+        if (actionName && isProceduralIdentityAction(actionName)) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyIdentityResult(capabilityRef.current, true),
+          });
+        } else if (
+          response.provider === 'procedural-identity' ||
+          response.provider === 'mock-dev'
+        ) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyIdentityResult(capabilityRef.current, true),
+          });
+        } else if (response.success) {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyTextResult(capabilityRef.current, {
+              success: true,
+              provider: response.provider,
+              model: response.model,
+            }),
+          });
+        } else {
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyTextResult(capabilityRef.current, {
+              success: false,
+              provider: response.provider,
+              model: response.model,
+            }),
+          });
+        }
       }
 
         }
@@ -395,15 +515,17 @@ export function BrandProvider({ children }: { children: ReactNode }) {
           type: 'SET_ERROR',
           payload: response.error || 'Identity generation failed.',
         });
+        dispatch({
+          type: 'SET_CAPABILITY',
+          payload: applyIdentityResult(capabilityRef.current, false),
+        });
         return;
       }
       dispatch({ type: 'SET_BRAND', payload: response.profile });
-      if (response.provider) {
-        const label = response.model
-          ? `${response.provider} · ${response.model}`
-          : response.provider;
-        dispatch({ type: 'SET_PROVIDER_NAME', payload: label });
-      }
+      dispatch({
+        type: 'SET_CAPABILITY',
+        payload: applyIdentityResult(capabilityRef.current, true),
+      });
 
       dispatch({
         type: 'SET_DIRECTOR_MESSAGE',
@@ -475,17 +597,34 @@ export function BrandProvider({ children }: { children: ReactNode }) {
             type: 'SET_ASSET_ERROR',
             payload: response.error || 'Asset generation failed.',
           });
+          dispatch({
+            type: 'SET_CAPABILITY',
+            payload: applyImageResult(capabilityRef.current, {
+              success: false,
+              source: null,
+            }),
+          });
           dispatch({ type: 'SET_DIRECTOR_MESSAGE', payload: null });
           return null;
         }
         const next = [response.asset, ...state.assets];
         assetService.persistAssets(state.brand.id, next);
         dispatch({ type: 'SET_ASSETS', payload: next });
+        const imageSource = response.usedTemplate
+          ? ('template' as const)
+          : ('image_provider' as const);
+        dispatch({
+          type: 'SET_CAPABILITY',
+          payload: applyImageResult(capabilityRef.current, {
+            success: true,
+            source: imageSource,
+          }),
+        });
         dispatch({
           type: 'SET_DIRECTOR_MESSAGE',
           payload: response.usedTemplate
-            ? 'Asset ready (branded template — image provider not configured).'
-            : 'Asset ready.',
+            ? 'Asset ready (branded SVG template — not a model-generated image).'
+            : 'Asset ready (Workers AI image).',
         });
         return response.asset;
       } catch (err) {
